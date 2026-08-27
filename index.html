@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bolão 26/27 — Protótipo</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #05070c;
+    --card: #10131c;
+    --card-2: #171c2a;
+    --border: #262c3d;
+    --gold: #7ec4e8;
+    --gold-dim: #2e4a5c;
+    --text: #e9edf6;
+    --muted: #7c8aab;
+    --verde: #2ea86b;
+    --verde-bg: #16321f;
+    --amarelo: #d9a63c;
+    --amarelo-bg: #34290f;
+    --vermelho: #d05a5a;
+    --vermelho-bg: #331414;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at 50% -10%, #11253a 0%, #060a12 42%, #05070c 100%);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  .phone {
+    width: 100%;
+    max-width: 430px;
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  header.appbar {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 5;
+  }
+  .appbar .right { display: flex; align-items: center; gap: 10px; }
+  .appbar .brand {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.5px;
+  }
+  .appbar .brand span { color: var(--gold); }
+  .appbar .user-pill {
+    font-size: 12px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    border-radius: 20px;
+  }
+  main {
+    flex: 1;
+    padding: 18px 16px 90px;
+    overflow-y: auto;
+  }
+  .screen { display: none; animation: fade .25s ease; }
+  .screen.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  h2.section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    margin: 22px 0 10px;
+    color: var(--text);
+  }
+  h2.section-title:first-child { margin-top: 0; }
+  p.section-note { font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+
+  /* ---------- RANKING ---------- */
+  .podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px 0 6px;
+  }
+  .podium .slot { display: flex; flex-direction: column; align-items: center; width: 100px; }
+  .podium .avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px;
+    background: var(--card-2); border: 2px solid var(--border); margin-bottom: 8px;
+  }
+  .podium .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .row-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); margin-right: 4px; }
+  .podium .slot.p1 .avatar { border-color: var(--gold); width: 68px; height: 68px; font-size: 24px; }
+  .podium .slot.p2 .avatar { border-color: #9fb0d1; }
+  .podium .slot.p3 .avatar { border-color: #b57a4a; }
+  .podium .name { font-size: 13px; font-weight: 600; text-align: center; }
+  .podium .pts { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .podium .bar {
+    margin-top: 10px; width: 100%; border-radius: 8px 8px 0 0;
+    background: var(--card-2); border: 1px solid var(--border); border-bottom: none;
+    display: flex; align-items: flex-start; justify-content: center; padding-top: 6px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; color: var(--muted); font-size: 15px;
+  }
+  .podium .p1 .bar { height: 108px; background: linear-gradient(180deg, #10222c, var(--card-2)); border-color: var(--gold-dim); color: var(--gold); font-size: 20px; padding-top: 10px; }
+  .podium .p2 .bar { height: 78px; font-size: 18px; padding-top: 9px; }
+  .podium .p3 .bar { height: 58px; font-size: 18px; padding-top: 8px; }
+
+  .rank-list { margin-top: 18px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .rank-row {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    background: var(--card); border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .rank-row:last-child { border-bottom: none; }
+  .rank-row .pos { color: var(--muted); width: 18px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 15px; }
+  .rank-row .nm { flex: 1; font-weight: 500; }
+  .rank-row .pt { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; color: var(--gold); font-size: 15px; }
+
+  /* ---------- PALPITES ---------- */
+  .jogo-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px; margin-bottom: 12px;
+  }
+  .jogo-card .fase { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 10px; }
+  .jogo-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .time-lbl { flex: 1; font-size: 13.5px; font-weight: 600; text-align: center; }
+  .time-lbl.esquerda { text-align: right; }
+  .time-lbl.direita { text-align: left; }
+  .flag-inline { width: 20px; height: 14px; object-fit: cover; border-radius: 2px; border: 1px solid var(--border); vertical-align: middle; margin: 0 6px; }
+  .flag-row { width: 24px; height: 17px; object-fit: cover; border-radius: 2px; border: 1px solid var(--border); margin-right: 8px; flex-shrink: 0; }
+  .placar-input {
+    width: 42px; height: 42px; text-align: center; font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px; font-weight: 700; background: var(--card-2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text);
+  }
+  .placar-input:focus { outline: none; border-color: var(--gold); }
+  .placar-sep { color: var(--muted); font-weight: 600; }
+  .jogo-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+  .prazo { font-size: 11px; color: var(--muted); }
+  .prazo b { color: var(--amarelo); font-weight: 600; }
+  .btn-enviar {
+    background: var(--gold); color: #071620; border: none; padding: 7px 16px;
+    border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer;
+  }
+  .btn-enviar:active { opacity: 0.85; }
+  .jogo-card.enviado { opacity: 0.7; }
+  .jogo-card.enviado .placar-input { pointer-events: none; }
+  .tag-enviado {
+    font-size: 11px; color: var(--verde); font-weight: 600; display: flex; align-items: center; gap: 4px;
+  }
+  .tag-enviado::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--verde); }
+  .tag-aguardando {
+    font-size: 11px; color: var(--muted); font-weight: 600; display: flex; align-items: center; gap: 4px;
+  }
+  .tag-aguardando::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+  .pts-badge {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px;
+    padding: 3px 10px; border-radius: 20px;
+  }
+  .pts-badge.ganhou { background: var(--verde-bg); color: var(--verde); border: 1px solid var(--verde); }
+  .pts-badge.zerou { background: var(--vermelho-bg); color: var(--vermelho); border: 1px solid var(--vermelho); }
+
+  /* ---------- CLASSIFICAÇÃO ---------- */
+  .subtabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .subtab {
+    flex: 1; text-align: center; padding: 8px 0; border-radius: 8px; font-size: 12px; font-weight: 600;
+    background: var(--card); border: 1px solid var(--border); color: var(--muted); cursor: pointer;
+  }
+  .subtab.active { background: var(--card-2); color: var(--text); border-color: var(--gold-dim); }
+
+  .team-grid-head {
+    display: flex; padding: 6px 4px; font-size: 10px; color: var(--muted); text-transform: uppercase;
+    position: sticky; top: 0; background: var(--bg); z-index: 2;
+  }
+  .team-grid-head .nm { flex: 1; }
+  .team-grid-head .opt { width: 30px; text-align: center; }
+  .team-row {
+    display: flex; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .team-row .nm { flex: 1; }
+  .opt-btn {
+    width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: var(--card);
+    display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted);
+    cursor: pointer; margin-left: 4px;
+  }
+  .opt-btn.top8.selected { background: var(--verde-bg); border-color: var(--verde); color: var(--verde); }
+  .opt-btn.top24.selected { background: var(--amarelo-bg); border-color: var(--amarelo); color: var(--amarelo); }
+  .opt-btn.fora.selected { background: var(--vermelho-bg); border-color: var(--vermelho); color: var(--vermelho); }
+  .opt-btn.disabled-limit { opacity: 0.3; cursor: not-allowed; }
+
+  .count-bar { display: flex; gap: 8px; margin-bottom: 10px; }
+  .count-chip {
+    flex: 1; text-align: center; padding: 7px 0; border-radius: 8px; font-size: 11.5px; font-weight: 600;
+    border: 1px solid var(--border); background: var(--card);
+  }
+  .count-chip.t8 { color: var(--verde); }
+  .count-chip.t24 { color: var(--amarelo); }
+  .count-chip.fora { color: var(--vermelho); }
+  .count-chip.full { border-color: currentColor; }
+
+  .extra-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px;
+  }
+  .extra-card label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .extra-card select {
+    width: 100%; background: var(--card-2); border: 1px solid var(--border); color: var(--text);
+    padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 10px;
+  }
+
+  .real-box {
+    background: var(--card-2); border: 1px dashed var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px;
+  }
+  .real-box .ttl { font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .real-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
+  .real-row .p { color: var(--muted); width: 22px; }
+
+  /* ---------- PLACARES ---------- */
+  .placar-real-row {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer;
+  }
+  .placar-real-top { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; }
+  .placar-real-top .score { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; color: var(--gold); }
+  .placar-real-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+  .expand { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .expand.open { display: block; }
+  .expand-row { display: flex; justify-content: space-between; font-size: 11.5px; padding: 3px 0; color: var(--muted); }
+  .expand-row b { color: var(--text); font-weight: 500; }
+
+  nav.tabbar {
+    position: sticky; bottom: 0; display: flex; border-top: 1px solid var(--border);
+    background: var(--bg); backdrop-filter: blur(6px);
+  }
+  nav.tabbar button {
+    flex: 1; background: none; border: none; color: var(--muted); padding: 10px 0 8px;
+    font-family: 'Inter', sans-serif; font-size: 10.5px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  nav.tabbar button .dot { width: 5px; height: 5px; border-radius: 50%; background: transparent; }
+  nav.tabbar button.active { color: var(--gold); }
+  nav.tabbar button.active .dot { background: var(--gold); }
+
+  /* ---------- LOGIN ---------- */
+  .login-wrap {
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 32px 28px; text-align: center; position: relative; overflow: hidden;
+  }
+  .login-wrap::before {
+    content: ''; position: absolute; top: -140px; left: 50%; transform: translateX(-50%);
+    width: 420px; height: 420px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(126,196,232,0.28), rgba(30,70,100,0.1) 45%, transparent 72%);
+  }
+  .cup-icon { width: 84px; height: 84px; margin-bottom: 18px; position: relative; z-index: 1; }
+  .login-title {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: 0.5px;
+    position: relative; z-index: 1;
+  }
+  .login-title span { color: var(--gold); }
+  .login-sub { font-size: 12.5px; color: var(--muted); margin-top: 6px; margin-bottom: 34px; position: relative; z-index: 1; }
+  .login-form { width: 100%; max-width: 280px; position: relative; z-index: 1; }
+  .login-field { text-align: left; margin-bottom: 14px; }
+  .login-field label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .login-field input {
+    width: 100%; background: var(--card); border: 1px solid var(--border); color: var(--text);
+    padding: 12px 14px; border-radius: 10px; font-size: 14px;
+  }
+  .login-field input:focus { outline: none; border-color: var(--gold); }
+  .btn-entrar {
+    width: 100%; background: var(--gold); color: #071620; border: none; padding: 13px 0;
+    border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 6px;
+  }
+  .login-audio {
+    margin-top: 26px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 11px; color: var(--muted); position: relative; z-index: 1;
+  }
+  .login-audio .bars { display: flex; align-items: flex-end; gap: 2px; height: 12px; }
+  .login-audio .bars span { width: 2.5px; background: var(--gold); animation: eq 0.9s ease-in-out infinite; }
+  .login-audio .bars span:nth-child(1) { height: 40%; animation-delay: 0s; }
+  .login-audio .bars span:nth-child(2) { height: 100%; animation-delay: 0.15s; }
+  .login-audio .bars span:nth-child(3) { height: 65%; animation-delay: 0.3s; }
+  .login-audio .bars span:nth-child(4) { height: 85%; animation-delay: 0.45s; }
+  @keyframes eq { 0%, 100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
+  /* ---------- TEMA CLARO ---------- */
+  body.theme-light {
+    --bg: #eef1f6; --card: #ffffff; --card-2: #f5f7fa; --border: #dbe1ea;
+    --gold: #1f7fb0; --gold-dim: #cfe6f2; --text: #16212f; --muted: #6b7686;
+    --verde: #1f9d5c; --verde-bg: #e3f7ec; --amarelo: #a8770a; --amarelo-bg: #fbf1d9;
+    --vermelho: #c23b3b; --vermelho-bg: #fbe6e6;
+    background: radial-gradient(circle at 50% -10%, #dcebf6 0%, #eef1f6 45%, #eef1f6 100%);
+  }
+  body.theme-light .btn-enviar, body.theme-light .btn-entrar { color: #ffffff; }
+  body.theme-light .login-wrap::before { background: radial-gradient(circle, rgba(31,127,176,0.18), transparent 70%); }
+
+  /* ---------- SALVAR SENHA ---------- */
+  .save-pass { display: flex; align-items: center; gap: 8px; margin: -4px 0 18px; font-size: 12px; color: var(--muted); }
+  .save-pass input { accent-color: var(--gold); width: 15px; height: 15px; }
+
+  /* ---------- ENGRENAGEM / CONFIG ---------- */
+  .gear-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--card); border: 1px solid var(--border); display: flex; align-items: center;
+    justify-content: center; cursor: pointer; flex-shrink: 0;
+  }
+  .gear-btn svg { width: 17px; height: 17px; stroke: var(--muted); }
+  .config-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 20;
+    align-items: flex-end; justify-content: center;
+  }
+  .config-overlay.open { display: flex; }
+  .config-sheet {
+    width: 100%; max-width: 430px; background: var(--card); border-radius: 18px 18px 0 0;
+    padding: 22px 20px 26px; border: 1px solid var(--border); border-bottom: none;
+  }
+  .config-sheet h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 19px; font-weight: 600; margin-bottom: 16px; }
+  .config-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .theme-options { display: flex; gap: 10px; margin-bottom: 20px; }
+  .theme-card {
+    flex: 1; border: 2px solid var(--border); border-radius: 12px; padding: 10px; cursor: pointer; text-align: center;
+  }
+  .theme-card.selected { border-color: var(--gold); }
+  .theme-swatch { height: 34px; border-radius: 8px; margin-bottom: 8px; }
+  .theme-swatch.dark { background: linear-gradient(135deg, #05070c, #11253a); }
+  .theme-swatch.light { background: linear-gradient(135deg, #ffffff, #dcebf6); border: 1px solid #dde3ec; }
+  .theme-card span { font-size: 11.5px; font-weight: 500; }
+  .config-row {
+    display: flex; align-items: center; justify-content: space-between; padding: 12px 0;
+    border-top: 1px solid var(--border); font-size: 13px;
+  }
+  .switch { position: relative; width: 42px; height: 24px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider {
+    position: absolute; inset: 0; background: var(--border); border-radius: 20px; cursor: pointer; transition: 0.2s;
+  }
+  .switch .slider::before {
+    content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff;
+    border-radius: 50%; transition: 0.2s;
+  }
+  .switch input:checked + .slider { background: var(--gold); }
+  .switch input:checked + .slider::before { transform: translateX(18px); }
+  .config-close {
+    width: 100%; margin-top: 18px; padding: 12px 0; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--card-2); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+
+  /* ---------- ATUALIZAR DADOS ---------- */
+  .sync-bar {
+    display: flex; align-items: center; justify-content: space-between; padding: 8px 16px;
+    border-bottom: 1px solid var(--border); font-size: 11px; color: var(--muted);
+  }
+  .sync-btn { display: flex; align-items: center; gap: 5px; color: var(--gold); font-weight: 600; cursor: pointer; background: none; border: none; font-size: 11px; }
+  .sync-btn svg { width: 13px; height: 13px; stroke: var(--gold); }
+  .sync-btn.spinning svg { animation: spin 0.7s linear; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#05070c">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bolão 26/27">
+</head>
+<body>
+<div class="phone">
+
+  <!-- ===================== LOGIN ===================== -->
+  <section class="login-wrap" id="screen-login">
+    <svg class="cup-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M30 18 H70 V38 C70 54 58 64 50 64 C42 64 30 54 30 38 Z" fill="none" stroke="#c9d6e0" stroke-width="3.2" stroke-linejoin="round"/>
+      <path d="M30 22 H16 C16 36 24 42 30 40" fill="none" stroke="#c9d6e0" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M70 22 H84 C84 36 76 42 70 40" fill="none" stroke="#c9d6e0" stroke-width="3.2" stroke-linecap="round"/>
+      <rect x="46" y="64" width="8" height="12" fill="#c9d6e0"/>
+      <path d="M34 82 H66 L61 76 H39 Z" fill="#c9d6e0"/>
+      <circle cx="50" cy="34" r="7" fill="none" stroke="#0b1220" stroke-width="2"/>
+      <path d="M50 29 L51.5 32.5 L55 33 L52.3 35.4 L53 39 L50 37.1 L47 39 L47.7 35.4 L45 33 L48.5 32.5 Z" fill="#0b1220"/>
+    </svg>
+    <div class="login-title">Bolão <span>26/27</span></div>
+    <div class="login-sub">Liga dos Campeões — temporada 2026/27</div>
+    <div class="login-form">
+      <div class="login-field">
+        <label>Usuário</label>
+        <input type="text" placeholder="jogador1">
+      </div>
+      <div class="login-field">
+        <label>Senha</label>
+        <input type="password" placeholder="••••••">
+      </div>
+      <div class="save-pass">
+        <input type="checkbox" id="save-pass" checked>
+        <label for="save-pass">Salvar senha neste dispositivo</label>
+      </div>
+      <button class="btn-entrar" onclick="document.getElementById('screen-login').style.display='none'; document.getElementById('app-shell').style.display='flex'; simularSync();">Entrar</button>
+    </div>
+    <div class="login-audio">
+      <div class="bars"><span></span><span></span><span></span><span></span></div>
+      <span>trilha de abertura tocando</span>
+    </div>
+  </section>
+
+  <!-- ===================== CONFIG (ENGRENAGEM) ===================== -->
+  <div class="config-overlay" id="config-overlay">
+    <div class="config-sheet">
+      <h3>Configurações</h3>
+      <div class="config-label">Tema</div>
+      <div class="theme-options">
+        <div class="theme-card selected" id="theme-dark-card" onclick="trocarTema('dark')">
+          <div class="theme-swatch dark"></div>
+          <span>Escuro (Champions)</span>
+        </div>
+        <div class="theme-card" id="theme-light-card" onclick="trocarTema('light')">
+          <div class="theme-swatch light"></div>
+          <span>Claro</span>
+        </div>
+      </div>
+      <div class="config-row">
+        <span>Entrar com biometria (Face ID / digital)</span>
+        <label class="switch"><input type="checkbox" id="bio-toggle"><span class="slider"></span></label>
+      </div>
+      <button class="config-close" onclick="document.getElementById('config-overlay').classList.remove('open')">Fechar</button>
+    </div>
+  </div>
+
+  <div id="app-shell" style="display:none; flex-direction:column; min-height:100vh; width:100%;">
+
+  <header class="appbar">
+    <div class="brand">Bolão <span>26/27</span></div>
+    <div class="right">
+      <div class="gear-btn" onclick="document.getElementById('config-overlay').classList.add('open')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path>
+        </svg>
+      </div>
+      <div class="user-pill">jogador1</div>
+    </div>
+  </header>
+
+  <div class="sync-bar">
+    <span id="sync-status">Dados atualizados agora</span>
+    <button class="sync-btn" id="sync-btn" onclick="simularSync()">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path>
+        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+      </svg>
+      Atualizar dados
+    </button>
+  </div>
+
+  <main>
+
+    <!-- ===================== RANKING ===================== -->
+    <section class="screen active" id="screen-ranking">
+      <h2 class="section-title">Classificação geral</h2>
+      <p class="section-note">Atualizado após cada rodada de resultados reais.</p>
+
+      <div class="podium">
+        <div class="slot p2"><div class="avatar"><img src="avatars/yuri.jpg" alt="Yuri"></div><div class="name">Yuri</div><div class="pts">38 pts</div><div class="bar">2</div></div>
+        <div class="slot p1"><div class="avatar"><img src="avatars/igor.jpg" alt="Igor"></div><div class="name">Igor</div><div class="pts">47 pts</div><div class="bar">1</div></div>
+        <div class="slot p3"><div class="avatar"><img src="avatars/marco.jpg" alt="Marco"></div><div class="name">Marco</div><div class="pts">31 pts</div><div class="bar">3</div></div>
+      </div>
+
+      <div class="rank-list">
+        <div class="rank-row"><div class="pos">4</div><img class="row-avatar" src="avatars/phelipe.jpg" alt=""><div class="nm">Phelipe</div><div class="pt">27</div></div>
+        <div class="rank-row"><div class="pos">5</div><img class="row-avatar" src="avatars/caio.jpg" alt=""><div class="nm">Caio</div><div class="pt">22</div></div>
+        <div class="rank-row"><div class="pos">6</div><img class="row-avatar" src="avatars/paulo.jpg" alt=""><div class="nm">Paulo</div><div class="pt">19</div></div>
+      </div>
+    </section>
+
+    <!-- ===================== MEUS PALPITES ===================== -->
+    <section class="screen" id="screen-palpites">
+      <h2 class="section-title">Meus palpites</h2>
+      <p class="section-note">Prazo sempre até 4h antes do jogo. Depois de enviado, o placar não pode mais ser alterado. Assim que o resultado real sai, o cartão mostra o placar oficial e os pontos ganhos nesse jogo.</p>
+
+      <div class="jogo-card" id="jogo1">
+        <div class="fase">Fase de liga · Jornada 1</div>
+        <div class="jogo-row">
+          <div class="time-lbl esquerda"><img class="flag-inline" src="https://flagcdn.com/es.svg" alt="">Real Madrid</div>
+          <input class="placar-input" type="number" min="0" value="">
+          <span class="placar-sep">x</span>
+          <input class="placar-input" type="number" min="0" value="">
+          <div class="time-lbl direita">Liverpool<img class="flag-inline" src="https://flagcdn.com/gb-eng.svg" alt=""></div>
+        </div>
+        <div class="jogo-footer">
+          <div class="prazo">Envio até <b>08/09 15:00</b></div>
+          <button class="btn-enviar" onclick="enviarPalpite('jogo1')">Enviar</button>
+        </div>
+      </div>
+
+      <div class="jogo-card enviado" id="jogo2">
+        <div class="fase">Fase de liga · Jornada 1 · Encerrado</div>
+        <div class="jogo-row">
+          <div class="time-lbl esquerda"><img class="flag-inline" src="https://flagcdn.com/es.svg" alt="">Barcelona</div>
+          <input class="placar-input" type="number" value="2" disabled>
+          <span class="placar-sep">x</span>
+          <input class="placar-input" type="number" value="1" disabled>
+          <div class="time-lbl direita">PSG<img class="flag-inline" src="https://flagcdn.com/fr.svg" alt=""></div>
+        </div>
+        <div class="jogo-footer">
+          <div class="prazo">Resultado real: <b style="color:var(--text)">2 x 1</b></div>
+          <div class="pts-badge ganhou">+1 pt</div>
+        </div>
+      </div>
+
+      <div class="jogo-card enviado" id="jogo3">
+        <div class="fase">Fase de liga · Jornada 1</div>
+        <div class="jogo-row">
+          <div class="time-lbl esquerda"><img class="flag-inline" src="https://flagcdn.com/de.svg" alt="">Bayern München</div>
+          <input class="placar-input" type="number" value="1" disabled>
+          <span class="placar-sep">x</span>
+          <input class="placar-input" type="number" value="0" disabled>
+          <div class="time-lbl direita">Inter de Milão<img class="flag-inline" src="https://flagcdn.com/it.svg" alt=""></div>
+        </div>
+        <div class="jogo-footer">
+          <div class="prazo">Enviado em 08/09 09:15</div>
+          <div class="tag-aguardando">Aguardando resultado</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== CLASSIFICAÇÃO / ARTILHEIRO ===================== -->
+    <section class="screen" id="screen-class">
+      <div class="subtabs">
+        <div class="subtab active" onclick="subtab('sub-palp', this)">Meus palpites</div>
+        <div class="subtab" onclick="subtab('sub-extras', this)">Artilheiro / Campeão</div>
+        <div class="subtab" onclick="subtab('sub-real', this)">Resultado real</div>
+      </div>
+
+      <div id="sub-palp" class="subscreen">
+        <p class="section-note">Marque para cada time: entre os 8 primeiros, entre os classificados (9º–24º) ou não classifica. Envio único até 24h antes do 1º jogo da fase de liga — <b style="color:var(--amarelo)">08/09/2026, horário exato a confirmar no calendário oficial</b>. Depois de enviado, não pode alterar.</p>
+        <div class="count-bar" id="count-bar"></div>
+        <div class="team-grid-head"><div class="nm">Time</div><div class="opt">T8</div><div class="opt">9-24</div><div class="opt">Fora</div></div>
+        <div id="team-list"></div>
+        <button class="btn-enviar" style="width:100%; padding:11px 0; margin-top:14px;" onclick="enviarClassificacao()" id="btn-enviar-class" disabled>Enviar classificação (0/36 times marcados)</button>
+      </div>
+
+      <div id="sub-extras" class="subscreen" style="display:none">
+        <p class="section-note">Artilheiro: mesmo prazo e mesma trava da classificação (24h antes do 1º jogo). Campeão: só libera depois que a fase de liga termina.</p>
+        <div class="extra-card">
+          <label>Artilheiro — time</label>
+          <select id="art-time"></select>
+          <label>Artilheiro — jogador</label>
+          <select id="art-jogador"><option>Selecione o time acima</option></select>
+          <button class="btn-enviar" style="width:100%; padding:11px 0;" onclick="enviarArtilheiro()">Enviar artilheiro</button>
+        </div>
+        <div class="extra-card" style="opacity:0.55;">
+          <label>Campeão do torneio</label>
+          <select id="campeao-time" disabled></select>
+          <div style="font-size:11px; color:var(--muted); margin-top:-4px; margin-bottom:10px;">Bloqueado até o fim da fase de liga (após a Jornada 8, 27/01/2027)</div>
+          <button class="btn-enviar" style="width:100%; padding:11px 0;" disabled>Enviar campeão</button>
+        </div>
+      </div>
+
+      <div id="sub-real" class="subscreen" style="display:none">
+        <div class="real-box">
+          <div class="ttl">Classificação real (atualizada diariamente)</div>
+          <div class="real-row"><span class="p">1º</span><span>Paris Saint-Germain</span></div>
+          <div class="real-row"><span class="p">2º</span><span>Real Madrid</span></div>
+          <div class="real-row"><span class="p">3º</span><span>Arsenal</span></div>
+          <div class="real-row" style="color:var(--muted); font-size:11px; padding-top:6px;">... segue até 36º, faixa colorida igual à tabela de palpites</div>
+        </div>
+        <div class="real-box">
+          <div class="ttl">Artilheiro real</div>
+          <div class="real-row"><span>Aguardando início da fase de liga</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PLACARES REAIS ===================== -->
+    <section class="screen" id="screen-placares">
+      <h2 class="section-title">Placares reais</h2>
+      <p class="section-note">Toque em um jogo para ver o placar oficial e os palpites de todos.</p>
+
+      <div class="placar-real-row" onclick="toggleExpand('exp1')">
+        <div class="placar-real-top">
+          <span>Barcelona x PSG</span>
+          <span class="score">2 - 1</span>
+        </div>
+        <div class="placar-real-sub">Jornada 1 · 07/09/2026</div>
+        <div class="expand" id="exp1">
+          <div class="expand-row"><b>Igor</b><span>2 x 1</span></div>
+          <div class="expand-row"><b>Carlos</b><span>1 x 1</span></div>
+          <div class="expand-row"><b>Renata</b><span>2 x 0</span></div>
+          <div class="expand-row"><b>Bruno</b><span>não enviou</span></div>
+        </div>
+      </div>
+
+      <div class="placar-real-row" onclick="toggleExpand('exp2')">
+        <div class="placar-real-top">
+          <span>Real Madrid x Liverpool</span>
+          <span class="score">Aguardando</span>
+        </div>
+        <div class="placar-real-sub">Jornada 1 · 08/09/2026</div>
+        <div class="expand" id="exp2">
+          <div class="expand-row" style="grid-column:1/-1; color:var(--muted);">Jogo ainda não realizado — palpites ficam ocultos entre os jogadores até o prazo fechar.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar">
+    <button class="active" onclick="goTo('ranking', this)"><span class="dot"></span>Ranking</button>
+    <button onclick="goTo('palpites', this)"><span class="dot"></span>Palpites</button>
+    <button onclick="goTo('class', this)"><span class="dot"></span>Classificação</button>
+    <button onclick="goTo('placares', this)"><span class="dot"></span>Placares</button>
+  </nav>
+
+  </div>
+</div>
+
+<script>
+  const TIMES = ["AEK Athens","Arsenal","Aston Villa","Atlético de Madrid","Bayern München","Barcelona","Bodø/Glimt","Borussia Dortmund","Club Brugge","Como","Fenerbahçe","Feyenoord","Galatasaray","Inter de Milão","LASK","Lens","Lille","Liverpool","Manchester City","Manchester United","Napoli","Paris Saint-Germain","Porto","PSV Eindhoven","RB Leipzig","Real Betis","Real Madrid","Roma","Shakhtar Donetsk","Slavia Praha","Slovan Bratislava","Sporting CP","Stuttgart","Viking","Villarreal"];
+
+  const BANDEIRA = {
+    "AEK Athens":"gr","Arsenal":"gb-eng","Aston Villa":"gb-eng","Atlético de Madrid":"es","Bayern München":"de",
+    "Barcelona":"es","Bodø/Glimt":"no","Borussia Dortmund":"de","Club Brugge":"be","Como":"it",
+    "Fenerbahçe":"tr","Feyenoord":"nl","Galatasaray":"tr","Inter de Milão":"it","LASK":"at",
+    "Lens":"fr","Lille":"fr","Liverpool":"gb-eng","Manchester City":"gb-eng","Manchester United":"gb-eng",
+    "Napoli":"it","Paris Saint-Germain":"fr","Porto":"pt","PSV Eindhoven":"nl","RB Leipzig":"de",
+    "Real Betis":"es","Real Madrid":"es","Roma":"it","Shakhtar Donetsk":"ua","Slavia Praha":"cz",
+    "Slovan Bratislava":"sk","Sporting CP":"pt","Stuttgart":"de","Viking":"no","Villarreal":"es"
+  };
+  function bandeiraImg(nomeTime, cls) {
+    const iso = BANDEIRA[nomeTime];
+    return iso ? `<img class="${cls}" src="https://flagcdn.com/${iso}.svg" alt="">` : '';
+  }
+
+  function goTo(id, btn) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+    document.querySelectorAll('.tabbar button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function subtab(id, el) {
+    document.querySelectorAll('.subscreen').forEach(s => s.style.display = 'none');
+    document.getElementById(id).style.display = 'block';
+    document.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function enviarPalpite(cardId) {
+    const card = document.getElementById(cardId);
+    card.classList.add('enviado');
+    card.querySelectorAll('.placar-input').forEach(i => i.disabled = true);
+    const footer = card.querySelector('.jogo-footer');
+    footer.innerHTML = '<div class="prazo">Enviado agora</div><div class="tag-enviado">Registrado</div>';
+  }
+
+  function toggleExpand(id) {
+    document.getElementById(id).classList.toggle('open');
+  }
+
+  function montarTimeList() {
+    const wrap = document.getElementById('team-list');
+    TIMES.forEach((t, i) => {
+      const row = document.createElement('div');
+      row.className = 'team-row';
+      row.innerHTML = `
+        <div class="nm" style="display:flex; align-items:center;">${bandeiraImg(t,'flag-row')}${t}</div>
+        <div class="opt-btn top8" onclick="marcar(this,'top8',${i})">T8</div>
+        <div class="opt-btn top24" onclick="marcar(this,'top24',${i})">24</div>
+        <div class="opt-btn fora" onclick="marcar(this,'fora',${i})">✕</div>
+      `;
+      wrap.appendChild(row);
+    });
+  }
+
+  function trocarTema(tema) {
+    document.body.classList.toggle('theme-light', tema === 'light');
+    document.getElementById('theme-dark-card').classList.toggle('selected', tema === 'dark');
+    document.getElementById('theme-light-card').classList.toggle('selected', tema === 'light');
+  }
+
+  function simularSync() {
+    const btn = document.getElementById('sync-btn');
+    const status = document.getElementById('sync-status');
+    if (!btn) return;
+    btn.classList.add('spinning');
+    status.textContent = 'Atualizando...';
+    setTimeout(() => {
+      btn.classList.remove('spinning');
+      status.textContent = 'Dados atualizados agora';
+    }, 700);
+  }
+
+  function marcar(el, tipo, idx) {
+    const row = el.closest('.team-row');
+    const jaSelecionado = row.querySelector('.opt-btn.selected');
+    const tipoAnterior = jaSelecionado ? [...jaSelecionado.classList].find(c => LIMITES[c] !== undefined) : null;
+
+    if (tipoAnterior === tipo) {
+      el.classList.remove('selected');
+      contagem[tipo]--;
+      atualizarContadores();
+      return;
+    }
+    if (contagem[tipo] >= LIMITES[tipo]) {
+      return; // limite atingido, botão já fica desabilitado visualmente
+    }
+    if (tipoAnterior) contagem[tipoAnterior]--;
+    row.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    contagem[tipo]++;
+    atualizarContadores();
+  }
+
+  const LIMITES = { top8: 8, top24: 16, fora: 12 };
+  const contagem = { top8: 0, top24: 0, fora: 0 };
+
+  function atualizarContadores() {
+    document.getElementById('count-bar').innerHTML = `
+      <div class="count-chip t8 ${contagem.top8 >= LIMITES.top8 ? 'full' : ''}">T8 ${contagem.top8}/${LIMITES.top8}</div>
+      <div class="count-chip t24 ${contagem.top24 >= LIMITES.top24 ? 'full' : ''}">9-24 ${contagem.top24}/${LIMITES.top24}</div>
+      <div class="count-chip fora ${contagem.fora >= LIMITES.fora ? 'full' : ''}">Fora ${contagem.fora}/${LIMITES.fora}</div>
+    `;
+    document.querySelectorAll('#team-list .opt-btn').forEach(b => {
+      const tipo = ['top8','top24','fora'].find(t => b.classList.contains(t));
+      const atingiu = contagem[tipo] >= LIMITES[tipo] && !b.classList.contains('selected');
+      b.classList.toggle('disabled-limit', atingiu);
+    });
+    const total = contagem.top8 + contagem.top24 + contagem.fora;
+    const btn = document.getElementById('btn-enviar-class');
+    btn.textContent = `Enviar classificação (${total}/36 times marcados)`;
+    btn.disabled = total !== 36;
+  }
+
+  function enviarClassificacao() {
+    document.querySelectorAll('#team-list .opt-btn').forEach(b => b.style.pointerEvents = 'none');
+    const btn = document.getElementById('btn-enviar-class');
+    btn.textContent = 'Classificação registrada';
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  }
+
+  function enviarArtilheiro() {
+    document.getElementById('art-time').disabled = true;
+    document.getElementById('art-jogador').disabled = true;
+    const btn = document.querySelector('#sub-extras .extra-card:first-child .btn-enviar');
+    btn.textContent = 'Artilheiro registrado';
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  }
+
+  function montarSelects() {
+    const artTime = document.getElementById('art-time');
+    const campeaoTime = document.getElementById('campeao-time');
+    [artTime, campeaoTime].forEach(sel => {
+      sel.innerHTML = '<option value="">Selecione</option>' + TIMES.map(t => `<option>${t}</option>`).join('');
+    });
+  }
+
+  montarTimeList();
+  montarSelects();
+  atualizarContadores();
+
+  // Registro do service worker (funcionamento offline do app shell)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+  }
+
+  // Trilha de abertura: navegadores bloqueiam audio automatico antes do primeiro toque na
+  // pagina. Quando o mp3 licenciado existir, criar o <audio> aqui e chamar .play() dentro
+  // deste listener (que dispara no primeiro toque em qualquer lugar da tela de login).
+  document.getElementById('screen-login').addEventListener('click', function tocarTrilha() {
+    // ex.: document.getElementById('audio-login').play();
+    document.getElementById('screen-login').removeEventListener('click', tocarTrilha);
+  }, { once: true });
+</script>
+
+</body>
+</html>
