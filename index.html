@@ -41,32 +41,45 @@
     position: relative;
   }
   header.appbar {
-    padding: 18px 20px 14px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    position: sticky;
-    top: 0;
-    background: var(--bg);
-    z-index: 5;
+    position: sticky; top: 0; z-index: 5; background: var(--bg);
+    border-bottom: 1px solid var(--border); overflow: hidden; position: relative;
+    transition: background 0.3s ease;
   }
-  .appbar .right { display: flex; align-items: center; gap: 10px; }
-  .appbar .brand {
+  header.appbar .escudo-watermark {
+    position: absolute; right: -50px; bottom: -70px; width: 240px; height: 240px; object-fit: contain;
+    opacity: 0.28; pointer-events: none; z-index: 0;
+  }
+  header.appbar > * { position: relative; z-index: 1; }
+
+  .header-top-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 0; }
+  .brand {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: 0.4px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .brand span { color: var(--gold); }
+  .brand img { width: 20px; height: 20px; object-fit: contain; }
+
+  .header-mid-row { display: flex; align-items: center; gap: 12px; padding: 12px 18px 6px; }
+  .avatar-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+  .header-avatar-img, .header-avatar-fallback {
+    width: 54px; height: 54px; border-radius: 50%; object-fit: cover;
+    border: 2px solid var(--gold);
+  }
+  .header-avatar-fallback {
+    display: flex; align-items: center; justify-content: center;
+    background: var(--card-2); color: var(--muted); font-weight: 700; font-size: 15px;
     font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700;
-    font-size: 22px;
-    letter-spacing: 0.5px;
   }
-  .appbar .brand span { color: var(--gold); }
-  .appbar .user-pill {
-    font-size: 12px;
-    color: var(--muted);
-    border: 1px solid var(--border);
-    padding: 5px 10px;
-    border-radius: 20px;
+  .nome-usuario { font-size: 11px; color: var(--text); font-weight: 600; }
+
+  .stat-box {
+    flex: 1; background: var(--verde-bg); border: 1px solid var(--verde); border-radius: 10px; padding: 8px 12px;
   }
+  .stat-box .num { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; color: var(--verde); line-height: 1; }
+  .stat-box .lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .header-bottom-row { display: flex; justify-content: flex-end; padding: 4px 18px 12px; }
+
   main {
     flex: 1;
     padding: 18px 16px 90px;
@@ -247,11 +260,12 @@
 
   nav.tabbar {
     position: sticky; bottom: 0; display: flex; border-top: 1px solid var(--border);
-    background: var(--bg); backdrop-filter: blur(6px); overflow-x: auto;
+    background: var(--bg); backdrop-filter: blur(6px);
   }
   nav.tabbar button {
-    flex: 1 0 auto; min-width: 64px; background: none; border: none; color: var(--muted); padding: 13px 4px 11px;
-    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px;
+    flex: 1 1 0; min-width: 0; background: none; border: none; color: var(--muted); padding: 18px 2px 16px;
+    font-family: 'Inter', sans-serif; font-size: 9.5px; font-weight: 500; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   nav.tabbar button .dot { width: 6px; height: 6px; border-radius: 50%; background: transparent; }
   nav.tabbar button.active { color: var(--gold); }
@@ -408,6 +422,10 @@
       </div>
       <button class="btn-entrar" id="btn-entrar" onclick="entrarNoApp()">Entrar</button>
     </div>
+    <div class="login-audio" id="login-audio-indicator" style="display:none;">
+      <div class="bars"><span></span><span></span><span></span><span></span></div>
+      <span>trilha tocando</span>
+    </div>
   </section>
 
   <!-- ===================== CONFIG (ENGRENAGEM) ===================== -->
@@ -429,6 +447,10 @@
         <span>Entrar com biometria (Face ID / digital)</span>
         <label class="switch"><input type="checkbox" id="bio-toggle"><span class="slider"></span></label>
       </div>
+      <div class="config-row" onclick="toggleMusica()" style="cursor:pointer;">
+        <span id="music-status">Trilha do app: tocando</span>
+        <div class="bars" id="music-bars"><span></span><span></span><span></span><span></span></div>
+      </div>
       <div class="config-label" style="margin-top:14px;">Time do coração</div>
       <p class="section-note" style="margin-bottom:8px;">Aparece o escudo no topo do app.</p>
       <select id="time-coracao-select" onchange="trocarTimeCoracao(this.value)">
@@ -442,34 +464,38 @@
   <div id="app-shell" style="display:none; flex-direction:column; min-height:100vh; width:100%;">
 
   <header class="appbar" id="appbar-header">
-    <div class="brand"><img id="header-team-badge" src="" alt="" referrerpolicy="no-referrer" style="width:24px; height:24px; vertical-align:middle; margin-right:6px; display:none; object-fit:contain;">Bolão <span>26/27</span></div>
-    <div class="right">
+    <img id="header-watermark" class="escudo-watermark" src="" alt="" referrerpolicy="no-referrer" style="display:none;">
+    <div class="header-top-row">
+      <div class="brand"><img id="header-team-badge" src="" alt="" referrerpolicy="no-referrer" style="display:none;">Bolão <span>26/27</span></div>
       <div class="gear-btn" onclick="document.getElementById('config-overlay').classList.add('open')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
           <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path>
         </svg>
       </div>
-      <div class="user-pill" id="user-pill">jogador1</div>
+    </div>
+    <div class="header-mid-row">
+      <div class="avatar-col">
+        <img id="header-avatar" class="header-avatar-img" src="" alt="" style="display:none;">
+        <div id="header-avatar-fallback" class="header-avatar-fallback">--</div>
+        <div class="nome-usuario" id="user-pill">jogador1</div>
+      </div>
+      <div class="stat-box">
+        <div class="num" id="stat-acertos">--/--</div>
+        <div class="lbl" id="stat-percentual">Sem jogos com resultado ainda</div>
+      </div>
+    </div>
+    <div class="header-bottom-row">
+      <button class="sync-btn" id="sync-btn" onclick="simularSync()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+        </svg>
+        <span id="sync-status">Atualizar dados</span>
+      </button>
     </div>
   </header>
-
-  <div class="sync-bar" id="music-bar" onclick="toggleMusica()" style="cursor:pointer;">
-    <span id="music-status">▶ Tocar trilha do app</span>
-    <div class="bars" id="music-bars" style="display:none;"><span></span><span></span><span></span><span></span></div>
-  </div>
   <audio id="audio-app" src="audio/trilha-login.mp3" loop preload="none"></audio>
-
-  <div class="sync-bar">
-    <span id="sync-status">Dados atualizados agora</span>
-    <button class="sync-btn" id="sync-btn" onclick="simularSync()">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path>
-        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
-      </svg>
-      Atualizar dados
-    </button>
-  </div>
 
   <main>
 
@@ -649,8 +675,66 @@ async function abrirApp(usuario) {
   document.getElementById('user-pill').textContent = usuario;
   document.getElementById('screen-login').style.display = 'none';
   document.getElementById('app-shell').style.display = 'flex';
+  aplicarAvatarCabecalho(usuario);
+  tocarMusicaAutomatico();
   await carregarTudo();
 }
+
+function aplicarAvatarCabecalho(usuario) {
+  const img = document.getElementById('header-avatar');
+  const fallback = document.getElementById('header-avatar-fallback');
+  const caminho = AVATAR_POR_USUARIO[usuario];
+  if (caminho) {
+    img.src = caminho;
+    img.style.display = 'block';
+    fallback.style.display = 'none';
+  } else {
+    fallback.textContent = usuario.slice(0, 2).toUpperCase();
+    fallback.style.display = 'flex';
+    img.style.display = 'none';
+  }
+}
+
+function atualizarIndicadoresMusica(tocando) {
+  const status = document.getElementById('music-status');
+  const bars = document.getElementById('music-bars');
+  const loginIndicador = document.getElementById('login-audio-indicator');
+  if (status) status.textContent = tocando ? 'Trilha tocando' : '▶ Tocar trilha do app';
+  if (bars) bars.style.display = tocando ? 'flex' : 'none';
+  if (loginIndicador) loginIndicador.style.display = tocando ? 'flex' : 'none';
+}
+
+function tentarTocarMusica() {
+  const audio = document.getElementById('audio-app');
+  audio.volume = 0.5;
+  return audio.play();
+}
+
+function tocarMusicaAutomatico() {
+  tentarTocarMusica().catch(() => {
+    // navegador bloqueou autoplay (ex.: sessao restaurada sem clique novo) - toca no primeiro toque em qualquer lugar do app
+    const tentarNoToque = () => {
+      tentarTocarMusica().catch(() => {});
+      document.removeEventListener('click', tentarNoToque);
+    };
+    document.addEventListener('click', tentarNoToque, { once: true });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const audio = document.getElementById('audio-app');
+  if (audio) {
+    audio.addEventListener('play', () => atualizarIndicadoresMusica(true));
+    audio.addEventListener('pause', () => atualizarIndicadoresMusica(false));
+  }
+  const loginScreen = document.getElementById('screen-login');
+  if (loginScreen) {
+    loginScreen.addEventListener('click', function tocarNoLogin() {
+      tentarTocarMusica().catch(() => {});
+      loginScreen.removeEventListener('click', tocarNoLogin);
+    }, { once: true });
+  }
+});
 
 function sair() {
   localStorage.removeItem('bolao_sessao');
@@ -660,6 +744,9 @@ function sair() {
   document.getElementById('screen-login').style.display = 'flex';
   document.getElementById('input-usuario').value = '';
   document.getElementById('input-senha').value = '';
+  const audio = document.getElementById('audio-app');
+  audio.pause();
+  audio.currentTime = 0;
   const btn = document.getElementById('btn-entrar');
   btn.disabled = false;
   btn.textContent = 'Entrar';
@@ -721,6 +808,32 @@ async function carregarJogosEPalpites() {
   if (jogosResp.ok) JOGOS_CACHE = jogosResp.dados;
   if (palpitesResp.ok) MEUS_PALPITES_CACHE = palpitesResp;
   renderizarJogos();
+  atualizarStatAcertos();
+}
+
+function atualizarStatAcertos() {
+  const numEl = document.getElementById('stat-acertos');
+  const lblEl = document.getElementById('stat-percentual');
+  const jogosPorId = {};
+  JOGOS_CACHE.forEach(j => jogosPorId[j.ID_Jogo] = j);
+
+  let acertos = 0, considerados = 0;
+  MEUS_PALPITES_CACHE.resultado.forEach(p => {
+    const jogo = jogosPorId[p.ID_Jogo];
+    if (jogo && jogo.Resultado_Real) {
+      considerados++;
+      if (p.Palpite === jogo.Resultado_Real) acertos++;
+    }
+  });
+
+  if (considerados === 0) {
+    numEl.textContent = '--/--';
+    lblEl.textContent = 'Sem jogos com resultado ainda';
+  } else {
+    const pct = Math.round((acertos / considerados) * 100);
+    numEl.textContent = `${acertos}/${considerados}`;
+    lblEl.textContent = `${pct}% de acerto`;
+  }
 }
 
 function renderizarJogos() {
@@ -1043,14 +1156,35 @@ function trocarTimeCoracao(nomeTime) {
 
 function aplicarTimeCoracao(nomeTime) {
   const badge = document.getElementById('header-team-badge');
-  if (!nomeTime) { badge.style.display = 'none'; badge.src = ''; return; }
+  const watermark = document.getElementById('header-watermark');
+  const header = document.getElementById('appbar-header');
+
+  if (!nomeTime) {
+    badge.style.display = 'none'; badge.src = '';
+    watermark.style.display = 'none'; watermark.src = '';
+    header.style.background = 'var(--bg)';
+    return;
+  }
   const escudo = escudoDoTime(nomeTime);
   if (escudo) {
     badge.src = escudo;
     badge.style.display = 'inline-block';
+    watermark.src = escudo;
+    watermark.style.display = 'block';
   } else {
     badge.style.display = 'none';
+    watermark.style.display = 'none';
   }
+  const cor = corDoTime(nomeTime);
+  header.style.background = `linear-gradient(120deg, ${cor}22, var(--bg) 70%)`;
+}
+
+// gera uma cor consistente a partir do nome do time (mesma entrada = mesma cor sempre)
+function corDoTime(nomeTime) {
+  let hash = 0;
+  for (let i = 0; i < nomeTime.length; i++) hash = nomeTime.charCodeAt(i) + ((hash << 5) - hash);
+  const matiz = Math.abs(hash) % 360;
+  return `hsl(${matiz}, 70%, 55%)`;
 }
 
 const LIMITES = { top8: 8, top24: 16, fora: 12 };
@@ -1198,20 +1332,13 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// trilha do app: toca dentro do app (nao na tela de login), controlada pela barra logo abaixo do cabecalho
+// trilha do app: toca no login e continua tocando dentro do app; essa barra so pausa/retoma manualmente
 function toggleMusica() {
   const audio = document.getElementById('audio-app');
-  const status = document.getElementById('music-status');
-  const bars = document.getElementById('music-bars');
   if (audio.paused) {
-    audio.volume = 0.5;
-    audio.play()
-      .then(() => { status.textContent = 'Trilha tocando'; bars.style.display = 'flex'; })
-      .catch(() => { status.textContent = 'Não consegui tocar — toque de novo'; });
+    tentarTocarMusica().catch(() => { atualizarIndicadoresMusica(false); });
   } else {
     audio.pause();
-    status.textContent = '▶ Tocar trilha do app';
-    bars.style.display = 'none';
   }
 }
 </script>
