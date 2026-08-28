@@ -136,15 +136,12 @@
     padding: 14px; margin-bottom: 12px;
   }
   .jogo-card .fase { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 10px; }
-  .jogo-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .time-lbl { flex: 1; font-size: 13.5px; font-weight: 600; text-align: center; }
-  .time-lbl.esquerda { text-align: right; }
-  .time-lbl.direita { text-align: left; }
-  .flag-inline { width: 20px; height: 14px; object-fit: cover; border-radius: 2px; border: 1px solid var(--border); vertical-align: middle; margin: 0 6px; }
-  .flag-row { width: 24px; height: 17px; object-fit: cover; border-radius: 2px; border: 1px solid var(--border); margin-right: 8px; flex-shrink: 0; }
+  .jogo-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .time-lbl { flex: 1; font-size: 12px; font-weight: 600; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .placar-col { display: flex; align-items: center; gap: 6px; padding-top: 26px; }
   .team-badge { object-fit: contain; background: var(--card-2); border-radius: 4px; }
-  .team-badge.inline-badge { width: 22px; height: 22px; vertical-align: middle; margin: 0 6px; }
-  .team-badge.row-badge { width: 24px; height: 24px; margin-right: 8px; flex-shrink: 0; }
+  .team-badge.inline-badge { width: 32px; height: 32px; }
+  .team-badge.row-badge { width: 24px; height: 24px; margin-bottom: 4px; }
   .team-badge[src=""] { visibility: hidden; }
   .placar-input {
     width: 42px; height: 42px; text-align: center; font-family: 'Barlow Condensed', sans-serif;
@@ -193,9 +190,9 @@
   .team-grid-head .nm { flex: 1; }
   .team-grid-head .opt { width: 30px; text-align: center; }
   .team-row {
-    display: flex; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--border); font-size: 13px;
+    display: flex; align-items: center; padding: 9px 4px; border-bottom: 1px solid var(--border); font-size: 12px;
   }
-  .team-row .nm { flex: 1; }
+  .team-row .nm { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; }
   .opt-btn {
     width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: var(--card);
     display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted);
@@ -249,8 +246,8 @@
     background: var(--bg); backdrop-filter: blur(6px);
   }
   nav.tabbar button {
-    flex: 1; background: none; border: none; color: var(--muted); padding: 10px 0 8px;
-    font-family: 'Inter', sans-serif; font-size: 10.5px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    flex: 1; background: none; border: none; color: var(--muted); padding: 9px 0 7px;
+    font-family: 'Inter', sans-serif; font-size: 8.5px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;
   }
   nav.tabbar button .dot { width: 5px; height: 5px; border-radius: 50%; background: transparent; }
   nav.tabbar button.active { color: var(--gold); }
@@ -407,10 +404,11 @@
       </div>
       <button class="btn-entrar" id="btn-entrar" onclick="entrarNoApp()">Entrar</button>
     </div>
-    <div class="login-audio">
+    <div class="login-audio" id="login-audio-indicator" style="display:none;">
       <div class="bars"><span></span><span></span><span></span><span></span></div>
       <span>trilha de abertura tocando</span>
     </div>
+    <audio id="audio-login" src="audio/trilha-login.mp3" loop preload="none"></audio>
   </section>
 
   <!-- ===================== CONFIG (ENGRENAGEM) ===================== -->
@@ -532,6 +530,20 @@
       <div id="placares-container"><p class="section-note">Carregando...</p></div>
     </section>
 
+    <!-- ===================== MENSALIDADE ===================== -->
+    <section class="screen" id="screen-mensalidade">
+      <h2 class="section-title">Mensalidade</h2>
+      <p class="section-note">R$ 10,00 por participante, de setembro a junho (10 meses). Marque como pago só o seu próprio mês.</p>
+      <div id="mensalidade-container"><p class="section-note">Carregando...</p></div>
+    </section>
+
+    <!-- ===================== NOTÍCIAS ===================== -->
+    <section class="screen" id="screen-noticias">
+      <h2 class="section-title">Notícias</h2>
+      <p class="section-note">Direto do ge.globo/futebol. Toque numa notícia pra abrir a matéria completa no site de origem.</p>
+      <div id="noticias-container"><p class="section-note">Carregando...</p></div>
+    </section>
+
   </main>
 
   <nav class="tabbar">
@@ -539,6 +551,8 @@
     <button onclick="goTo('palpites', this)"><span class="dot"></span>Palpites</button>
     <button onclick="goTo('class', this)"><span class="dot"></span>Classificação</button>
     <button onclick="goTo('placares', this)"><span class="dot"></span>Placares</button>
+    <button onclick="goTo('mensalidade', this)"><span class="dot"></span>Mensal.</button>
+    <button onclick="goTo('noticias', this)"><span class="dot"></span>Notícias</button>
   </nav>
 
   </div>
@@ -658,7 +672,9 @@ async function carregarTudo() {
   await Promise.all([
     carregarJogosEPalpites(),
     carregarRanking(),
-    carregarPlacares()
+    carregarPlacares(),
+    carregarMensalidade(),
+    carregarNoticias()
   ]);
   montarTimeList();
   montarSelects();
@@ -712,8 +728,8 @@ function renderizarJogos() {
 
     const escudoCasa = escudoDoTime(jogo.Time_Casa);
     const escudoFora = escudoDoTime(jogo.Time_Fora);
-    const imgCasa = escudoCasa ? `<img class="team-badge inline-badge" src="${escudoCasa}" alt="">` : '';
-    const imgFora = escudoFora ? `<img class="team-badge inline-badge" src="${escudoFora}" alt="">` : '';
+    const imgCasa = escudoCasa ? `<img class="team-badge inline-badge" src="${escudoCasa}" alt="" referrerpolicy="no-referrer">` : '';
+    const imgFora = escudoFora ? `<img class="team-badge inline-badge" src="${escudoFora}" alt="" referrerpolicy="no-referrer">` : '';
 
     let footerHtml;
     if (meuPalpite && encerrado) {
@@ -734,11 +750,13 @@ function renderizarJogos() {
     card.innerHTML = `
       <div class="fase">Fase de liga${jogo.Jornada ? ' · ' + jogo.Jornada : ''}${encerrado ? ' · Encerrado' : ''}</div>
       <div class="jogo-row">
-        <div class="time-lbl esquerda">${imgCasa}${jogo.Time_Casa}</div>
-        <input class="placar-input" type="number" min="0" id="placar-casa-${jogo.ID_Jogo}" ${meuPalpite ? 'disabled' : ''}>
-        <span class="placar-sep">x</span>
-        <input class="placar-input" type="number" min="0" id="placar-fora-${jogo.ID_Jogo}" ${meuPalpite ? 'disabled' : ''}>
-        <div class="time-lbl direita">${jogo.Time_Fora}${imgFora}</div>
+        <div class="time-lbl esquerda">${imgCasa}<span>${jogo.Time_Casa}</span></div>
+        <div class="placar-col">
+          <input class="placar-input" type="number" min="0" id="placar-casa-${jogo.ID_Jogo}" ${meuPalpite ? 'disabled' : ''}>
+          <span class="placar-sep">x</span>
+          <input class="placar-input" type="number" min="0" id="placar-fora-${jogo.ID_Jogo}" ${meuPalpite ? 'disabled' : ''}>
+        </div>
+        <div class="time-lbl direita">${imgFora}<span>${jogo.Time_Fora}</span></div>
       </div>
       <div class="jogo-footer">${footerHtml}</div>
     `;
@@ -766,6 +784,96 @@ async function enviarPalpite(idJogo, btn) {
     return;
   }
   await carregarJogosEPalpites();
+}
+
+// ---------- Notícias ----------
+
+async function carregarNoticias() {
+  const resp = await apiGet('noticias');
+  const container = document.getElementById('noticias-container');
+  if (!resp.ok || !resp.dados.length) {
+    container.innerHTML = '<p class="section-note">Não consegui carregar notícias agora. Tente atualizar de novo em instantes.</p>';
+    return;
+  }
+  container.innerHTML = '';
+  resp.dados.forEach(n => {
+    const card = document.createElement('a');
+    card.href = n.link;
+    card.target = '_blank';
+    card.rel = 'noopener noreferrer';
+    card.style.cssText = 'display:block; text-decoration:none; color:inherit;';
+    card.innerHTML = `
+      <div class="jogo-card" style="padding:12px 14px; margin-bottom:10px;">
+        <div style="font-size:13.5px; font-weight:600; color:var(--text); margin-bottom:6px; line-height:1.4;">${n.titulo}</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:6px;">${n.resumo}${n.resumo.length >= 160 ? '...' : ''}</div>
+        <div style="font-size:10.5px; color:var(--gold);">ge.globo · ${formatarDataRss(n.data)}</div>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function formatarDataRss(dataStr) {
+  if (!dataStr) return '';
+  const d = new Date(dataStr);
+  if (isNaN(d)) return dataStr;
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+// ---------- Mensalidade ----------
+
+async function carregarMensalidade() {
+  const resp = await apiGet('mensalidades');
+  const container = document.getElementById('mensalidade-container');
+  if (!resp.ok) { container.innerHTML = '<p class="section-note">Não consegui carregar a mensalidade.</p>'; return; }
+
+  const linhas = resp.dados;
+  const meus = linhas.filter(l => l.ID_Usuario === USUARIO_LOGADO);
+  const outros = {};
+  linhas.forEach(l => {
+    if (l.ID_Usuario === USUARIO_LOGADO) return;
+    if (!outros[l.ID_Usuario]) outros[l.ID_Usuario] = { pagos: 0, total: 0 };
+    outros[l.ID_Usuario].total++;
+    if (l.Pago === 'Sim') outros[l.ID_Usuario].pagos++;
+  });
+
+  let html = '<h2 class="section-title" style="font-size:15px;">Meus meses</h2>';
+  meus.forEach(l => {
+    const pago = l.Pago === 'Sim';
+    html += `
+      <div class="jogo-card" style="padding:12px 14px;">
+        <div class="jogo-footer" style="margin-top:0;">
+          <div class="prazo"><b style="color:var(--text)">${l.Mes_Referencia}</b> — R$ ${l.Valor},00</div>
+          ${pago
+            ? `<div class="tag-enviado">Pago</div>`
+            : `<button class="btn-enviar" onclick="marcarPago('${l.Mes_Referencia}', this)">Marcar pago</button>`}
+        </div>
+      </div>`;
+  });
+
+  html += '<h2 class="section-title" style="font-size:15px;">Situação dos outros participantes</h2>';
+  Object.keys(outros).sort().forEach(usuario => {
+    const info = outros[usuario];
+    html += `
+      <div class="rank-row">
+        <div class="nm">${usuario}</div>
+        <div class="pt" style="color:var(--muted); font-size:12px;">${info.pagos}/${info.total} meses pagos</div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+async function marcarPago(mes, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  const resp = await apiPost('marcar_mensalidade', { usuario: USUARIO_LOGADO, mes });
+  if (!resp.ok) {
+    alert(resp.erro || 'Não consegui marcar como pago.');
+    btn.disabled = false;
+    btn.textContent = 'Marcar pago';
+    return;
+  }
+  await carregarMensalidade();
 }
 
 // ---------- Ranking ----------
@@ -858,9 +966,9 @@ function montarTimeList() {
   TIMES_CACHE.slice().sort((a, b) => a.Nome_Time.localeCompare(b.Nome_Time)).forEach((t, i) => {
     const row = document.createElement('div');
     row.className = 'team-row';
-    const escudo = t.Escudo_URL ? `<img class="team-badge row-badge" src="${t.Escudo_URL}" alt="">` : '';
+    const escudo = t.Escudo_URL ? `<img class="team-badge row-badge" src="${t.Escudo_URL}" alt="" referrerpolicy="no-referrer">` : '';
     row.innerHTML = `
-      <div class="nm" style="display:flex; align-items:center;">${escudo}${t.Nome_Time}</div>
+      <div class="nm">${escudo}<span>${t.Nome_Time}</span></div>
       <div class="opt-btn top8" onclick="marcar(this,'top8',${i})">T8</div>
       <div class="opt-btn top24" onclick="marcar(this,'top24',${i})">24</div>
       <div class="opt-btn fora" onclick="marcar(this,'fora',${i})">✕</div>
@@ -1007,7 +1115,14 @@ function trocarTema(tema) {
   document.body.classList.toggle('theme-light', tema === 'light');
   document.getElementById('theme-dark-card').classList.toggle('selected', tema === 'dark');
   document.getElementById('theme-light-card').classList.toggle('selected', tema === 'light');
+  localStorage.setItem('bolao_tema', tema);
 }
+
+function restaurarTema() {
+  const salvo = localStorage.getItem('bolao_tema');
+  if (salvo === 'light') trocarTema('light');
+}
+restaurarTema();
 
 // service worker + trilha de abertura
 if ('serviceWorker' in navigator) {
@@ -1017,11 +1132,24 @@ if ('serviceWorker' in navigator) {
 }
 document.addEventListener('DOMContentLoaded', () => {
   const loginScreen = document.getElementById('screen-login');
-  if (loginScreen) {
+  const audioLogin = document.getElementById('audio-login');
+  const indicador = document.getElementById('login-audio-indicator');
+  if (loginScreen && audioLogin) {
     loginScreen.addEventListener('click', function tocarTrilha() {
-      // ex.: document.getElementById('audio-login').play();
+      audioLogin.volume = 0.5;
+      audioLogin.play()
+        .then(() => { indicador.style.display = 'flex'; })
+        .catch(() => { /* navegador bloqueou mesmo apos o toque, mantem indicador oculto */ });
       loginScreen.removeEventListener('click', tocarTrilha);
     }, { once: true });
+  }
+
+  // para a musica assim que faz login (entra no app)
+  const btnEntrar = document.getElementById('btn-entrar');
+  if (btnEntrar && audioLogin) {
+    btnEntrar.addEventListener('click', () => {
+      setTimeout(() => { audioLogin.pause(); audioLogin.currentTime = 0; }, 200);
+    });
   }
 });
 </script>

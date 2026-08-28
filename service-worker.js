@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bolao-26-27-v2';
+const CACHE_NAME = 'bolao-26-27-v3';
 const APP_SHELL = [
   './',
   './index.html',
