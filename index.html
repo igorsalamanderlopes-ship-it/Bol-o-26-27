@@ -263,7 +263,7 @@
     background: var(--bg); backdrop-filter: blur(6px);
   }
   nav.tabbar button {
-    flex: 1 1 0; min-width: 0; background: none; border: none; color: var(--muted); padding: 18px 2px 16px;
+    flex: 1 1 0; min-width: 0; background: none; border: none; color: var(--muted); padding: 28px 2px 24px;
     font-family: 'Inter', sans-serif; font-size: 9.5px; font-weight: 500; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
@@ -678,6 +678,57 @@ async function abrirApp(usuario) {
   aplicarAvatarCabecalho(usuario);
   tocarMusicaAutomatico();
   await carregarTudo();
+  iniciarAvisosDePrazo();
+}
+
+const JANELAS_AVISO = [60, 30, 10]; // minutos antes do prazo em que avisa
+const AVISOS_DISPARADOS = new Set(); // evita avisar 2x pro mesmo jogo na mesma janela, na mesma sessao
+
+function iniciarAvisosDePrazo() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  if (window.__intervaloAvisoPrazo) clearInterval(window.__intervaloAvisoPrazo);
+  window.__intervaloAvisoPrazo = setInterval(checarPrazosDosJogos, 60 * 1000);
+  checarPrazosDosJogos();
+}
+
+function checarPrazosDosJogos() {
+  if (Notification.permission !== 'granted') return;
+  const idsComPalpite = new Set(MEUS_PALPITES_CACHE.resultado.map(p => p.ID_Jogo));
+  const agora = new Date();
+
+  JOGOS_CACHE.forEach(jogo => {
+    if (!jogo.Data_Hora_Jogo || idsComPalpite.has(jogo.ID_Jogo)) return;
+    const dataJogo = new Date(jogo.Data_Hora_Jogo);
+    if (isNaN(dataJogo)) return;
+    const prazo = new Date(dataJogo.getTime() - 4 * 60 * 60 * 1000);
+    const minutosRestantes = Math.round((prazo - agora) / 60000);
+
+    JANELAS_AVISO.forEach(janela => {
+      const chave = jogo.ID_Jogo + '_' + janela;
+      if (minutosRestantes <= janela && minutosRestantes > janela - 1 && !AVISOS_DISPARADOS.has(chave)) {
+        AVISOS_DISPARADOS.add(chave);
+        const texto = minutosRestantes >= 60
+          ? `Faltam ${Math.round(minutosRestantes / 60)}h para enviar seu palpite`
+          : `Faltam ${minutosRestantes} min para enviar seu palpite`;
+        dispararNotificacao('Bolão 26/27', `${texto}: ${jogo.Time_Casa} x ${jogo.Time_Fora}`);
+      }
+    });
+  });
+}
+
+function dispararNotificacao(titulo, corpo) {
+  if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+    navigator.serviceWorker.ready.then(reg => {
+      reg.showNotification(titulo, { body: corpo, icon: 'icons/icon-192.png' });
+    }).catch(() => {
+      new Notification(titulo, { body: corpo, icon: 'icons/icon-192.png' });
+    });
+  } else {
+    new Notification(titulo, { body: corpo, icon: 'icons/icon-192.png' });
+  }
 }
 
 function aplicarAvatarCabecalho(usuario) {
@@ -766,6 +817,7 @@ function sair() {
 async function carregarTudo() {
   atualizarSyncStatus('Atualizando...');
   await carregarTimes();
+  await apiGet('sincronizar'); // busca resultados reais e atualiza a planilha antes de ler os dados
   await Promise.all([
     carregarJogosEPalpites(),
     carregarRanking(),
@@ -776,7 +828,59 @@ async function carregarTudo() {
   montarTimeList();
   montarSelects();
   atualizarContadores();
+  aplicarEstadoExtrasJaEnviados();
   atualizarSyncStatus('Dados atualizados agora');
+}
+
+function aplicarEstadoExtrasJaEnviados() {
+  const extras = MEUS_PALPITES_CACHE.extras;
+  if (!extras) return;
+
+  // Classificacao (Top8 / Top9-24 / Fora) - se ja enviou, trava a grade toda
+  if (extras.Data_Hora_Envio_Classificacao) {
+    const top8 = [];
+    const top24 = [];
+    for (let i = 1; i <= 8; i++) if (extras['Top8_' + i]) top8.push(extras['Top8_' + i]);
+    for (let i = 9; i <= 24; i++) if (extras['Top24_' + i]) top24.push(extras['Top24_' + i]);
+
+    document.querySelectorAll('#team-list .team-row').forEach(row => {
+      const nome = row.querySelector('.nm span') ? row.querySelector('.nm span').textContent.trim() : row.querySelector('.nm').textContent.trim();
+      let tipo = null;
+      if (top8.includes(nome)) tipo = 'top8';
+      else if (top24.includes(nome)) tipo = 'top24';
+      else tipo = 'fora';
+      const btn = row.querySelector('.opt-btn.' + tipo);
+      if (btn) btn.classList.add('selected');
+      row.querySelectorAll('.opt-btn').forEach(b => b.style.pointerEvents = 'none');
+    });
+    contagem.top8 = top8.length;
+    contagem.top24 = top24.length;
+    contagem.fora = 36 - top8.length - top24.length;
+    atualizarContadores();
+    const btnClass = document.getElementById('btn-enviar-class');
+    btnClass.textContent = 'Classificação registrada';
+    btnClass.disabled = true;
+  }
+
+  // Artilheiro - se ja enviou, trava os campos
+  if (extras.Data_Hora_Envio_Artilheiro) {
+    document.getElementById('art-time').value = extras.Artilheiro_Time_Palpite || '';
+    document.getElementById('art-jogador').value = extras.Artilheiro_Jogador_Palpite || '';
+    document.getElementById('art-time').disabled = true;
+    document.getElementById('art-jogador').disabled = true;
+    const btnArt = document.getElementById('btn-enviar-art');
+    btnArt.textContent = 'Artilheiro registrado';
+    btnArt.disabled = true;
+  }
+
+  // Campeao - se ja enviou, trava o campo
+  if (extras.Data_Hora_Envio_Campeao) {
+    document.getElementById('campeao-time').value = extras.Campeao_Palpite || '';
+    document.getElementById('campeao-time').disabled = true;
+    const btnCampeao = document.getElementById('btn-enviar-campeao');
+    btnCampeao.textContent = 'Campeão registrado';
+    btnCampeao.disabled = true;
+  }
 }
 
 function atualizarSyncStatus(texto) {
