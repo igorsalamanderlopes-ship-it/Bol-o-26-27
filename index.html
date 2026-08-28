@@ -142,6 +142,10 @@
   .time-lbl.direita { text-align: left; }
   .flag-inline { width: 20px; height: 14px; object-fit: cover; border-radius: 2px; border: 1px solid var(--border); vertical-align: middle; margin: 0 6px; }
   .flag-row { width: 24px; height: 17px; object-fit: cover; border-radius: 2px; border: 1px solid var(--border); margin-right: 8px; flex-shrink: 0; }
+  .team-badge { object-fit: contain; background: var(--card-2); border-radius: 4px; }
+  .team-badge.inline-badge { width: 22px; height: 22px; vertical-align: middle; margin: 0 6px; }
+  .team-badge.row-badge { width: 24px; height: 24px; margin-right: 8px; flex-shrink: 0; }
+  .team-badge[src=""] { visibility: hidden; }
   .placar-input {
     width: 42px; height: 42px; text-align: center; font-family: 'Barlow Condensed', sans-serif;
     font-size: 20px; font-weight: 700; background: var(--card-2); border: 1px solid var(--border);
@@ -390,17 +394,18 @@
     <div class="login-form">
       <div class="login-field">
         <label>Usuário</label>
-        <input type="text" placeholder="jogador1">
+        <input type="text" id="input-usuario" placeholder="jogador1">
       </div>
       <div class="login-field">
         <label>Senha</label>
-        <input type="password" placeholder="••••••">
+        <input type="password" id="input-senha" placeholder="••••••">
       </div>
+      <div id="login-erro" style="color:var(--vermelho); font-size:12px; margin:-6px 0 10px; display:none;"></div>
       <div class="save-pass">
         <input type="checkbox" id="save-pass" checked>
         <label for="save-pass">Salvar senha neste dispositivo</label>
       </div>
-      <button class="btn-entrar" onclick="document.getElementById('screen-login').style.display='none'; document.getElementById('app-shell').style.display='flex'; simularSync();">Entrar</button>
+      <button class="btn-entrar" id="btn-entrar" onclick="entrarNoApp()">Entrar</button>
     </div>
     <div class="login-audio">
       <div class="bars"><span></span><span></span><span></span><span></span></div>
@@ -427,6 +432,7 @@
         <span>Entrar com biometria (Face ID / digital)</span>
         <label class="switch"><input type="checkbox" id="bio-toggle"><span class="slider"></span></label>
       </div>
+      <button class="config-close" onclick="sair()" style="color:var(--vermelho); border-color:var(--vermelho); margin-top:10px;">Sair da conta</button>
       <button class="config-close" onclick="document.getElementById('config-overlay').classList.remove('open')">Fechar</button>
     </div>
   </div>
@@ -442,7 +448,7 @@
           <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path>
         </svg>
       </div>
-      <div class="user-pill">jogador1</div>
+      <div class="user-pill" id="user-pill">jogador1</div>
     </div>
   </header>
 
@@ -463,69 +469,15 @@
     <section class="screen active" id="screen-ranking">
       <h2 class="section-title">Classificação geral</h2>
       <p class="section-note">Atualizado após cada rodada de resultados reais.</p>
-
-      <div class="podium">
-        <div class="slot p2"><div class="avatar"><img src="avatars/yuri.jpg" alt="Yuri"></div><div class="name">Yuri</div><div class="pts">38 pts</div><div class="bar">2</div></div>
-        <div class="slot p1"><div class="avatar"><img src="avatars/igor.jpg" alt="Igor"></div><div class="name">Igor</div><div class="pts">47 pts</div><div class="bar">1</div></div>
-        <div class="slot p3"><div class="avatar"><img src="avatars/marco.jpg" alt="Marco"></div><div class="name">Marco</div><div class="pts">31 pts</div><div class="bar">3</div></div>
-      </div>
-
-      <div class="rank-list">
-        <div class="rank-row"><div class="pos">4</div><img class="row-avatar" src="avatars/phelipe.jpg" alt=""><div class="nm">Phelipe</div><div class="pt">27</div></div>
-        <div class="rank-row"><div class="pos">5</div><img class="row-avatar" src="avatars/caio.jpg" alt=""><div class="nm">Caio</div><div class="pt">22</div></div>
-        <div class="rank-row"><div class="pos">6</div><img class="row-avatar" src="avatars/paulo.jpg" alt=""><div class="nm">Paulo</div><div class="pt">19</div></div>
-      </div>
+      <div class="podium" id="podium-container"></div>
+      <div class="rank-list" id="rank-list-container"></div>
     </section>
 
     <!-- ===================== MEUS PALPITES ===================== -->
     <section class="screen" id="screen-palpites">
       <h2 class="section-title">Meus palpites</h2>
       <p class="section-note">Prazo sempre até 4h antes do jogo. Depois de enviado, o placar não pode mais ser alterado. Assim que o resultado real sai, o cartão mostra o placar oficial e os pontos ganhos nesse jogo.</p>
-
-      <div class="jogo-card" id="jogo1">
-        <div class="fase">Fase de liga · Jornada 1</div>
-        <div class="jogo-row">
-          <div class="time-lbl esquerda"><img class="flag-inline" src="https://flagcdn.com/es.svg" alt="">Real Madrid</div>
-          <input class="placar-input" type="number" min="0" value="">
-          <span class="placar-sep">x</span>
-          <input class="placar-input" type="number" min="0" value="">
-          <div class="time-lbl direita">Liverpool<img class="flag-inline" src="https://flagcdn.com/gb-eng.svg" alt=""></div>
-        </div>
-        <div class="jogo-footer">
-          <div class="prazo">Envio até <b>08/09 15:00</b></div>
-          <button class="btn-enviar" onclick="enviarPalpite('jogo1')">Enviar</button>
-        </div>
-      </div>
-
-      <div class="jogo-card enviado" id="jogo2">
-        <div class="fase">Fase de liga · Jornada 1 · Encerrado</div>
-        <div class="jogo-row">
-          <div class="time-lbl esquerda"><img class="flag-inline" src="https://flagcdn.com/es.svg" alt="">Barcelona</div>
-          <input class="placar-input" type="number" value="2" disabled>
-          <span class="placar-sep">x</span>
-          <input class="placar-input" type="number" value="1" disabled>
-          <div class="time-lbl direita">PSG<img class="flag-inline" src="https://flagcdn.com/fr.svg" alt=""></div>
-        </div>
-        <div class="jogo-footer">
-          <div class="prazo">Resultado real: <b style="color:var(--text)">2 x 1</b></div>
-          <div class="pts-badge ganhou">+1 pt</div>
-        </div>
-      </div>
-
-      <div class="jogo-card enviado" id="jogo3">
-        <div class="fase">Fase de liga · Jornada 1</div>
-        <div class="jogo-row">
-          <div class="time-lbl esquerda"><img class="flag-inline" src="https://flagcdn.com/de.svg" alt="">Bayern München</div>
-          <input class="placar-input" type="number" value="1" disabled>
-          <span class="placar-sep">x</span>
-          <input class="placar-input" type="number" value="0" disabled>
-          <div class="time-lbl direita">Inter de Milão<img class="flag-inline" src="https://flagcdn.com/it.svg" alt=""></div>
-        </div>
-        <div class="jogo-footer">
-          <div class="prazo">Enviado em 08/09 09:15</div>
-          <div class="tag-aguardando">Aguardando resultado</div>
-        </div>
-      </div>
+      <div id="jogos-container"><p class="section-note">Carregando jogos...</p></div>
     </section>
 
     <!-- ===================== CLASSIFICAÇÃO / ARTILHEIRO ===================== -->
@@ -537,7 +489,7 @@
       </div>
 
       <div id="sub-palp" class="subscreen">
-        <p class="section-note">Marque para cada time: entre os 8 primeiros, entre os classificados (9º–24º) ou não classifica. Envio único até 24h antes do 1º jogo da fase de liga — <b style="color:var(--amarelo)">08/09/2026, horário exato a confirmar no calendário oficial</b>. Depois de enviado, não pode alterar.</p>
+        <p class="section-note">Marque para cada time: entre os 8 primeiros, entre os classificados (9º–24º) ou não classifica. Envio único até 24h antes do 1º jogo da fase de liga. Depois de enviado, não pode alterar.</p>
         <div class="count-bar" id="count-bar"></div>
         <div class="team-grid-head"><div class="nm">Time</div><div class="opt">T8</div><div class="opt">9-24</div><div class="opt">Fora</div></div>
         <div id="team-list"></div>
@@ -550,28 +502,25 @@
           <label>Artilheiro — time</label>
           <select id="art-time"></select>
           <label>Artilheiro — jogador</label>
-          <select id="art-jogador"><option>Selecione o time acima</option></select>
-          <button class="btn-enviar" style="width:100%; padding:11px 0;" onclick="enviarArtilheiro()">Enviar artilheiro</button>
+          <input type="text" id="art-jogador" placeholder="Nome do jogador" style="width:100%; background:var(--card-2); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-size:13px; margin-bottom:10px;">
+          <button class="btn-enviar" style="width:100%; padding:11px 0;" onclick="enviarArtilheiro()" id="btn-enviar-art">Enviar artilheiro</button>
         </div>
-        <div class="extra-card" style="opacity:0.55;">
+        <div class="extra-card" id="card-campeao" style="opacity:0.55;">
           <label>Campeão do torneio</label>
           <select id="campeao-time" disabled></select>
-          <div style="font-size:11px; color:var(--muted); margin-top:-4px; margin-bottom:10px;">Bloqueado até o fim da fase de liga (após a Jornada 8, 27/01/2027)</div>
-          <button class="btn-enviar" style="width:100%; padding:11px 0;" disabled>Enviar campeão</button>
+          <div style="font-size:11px; color:var(--muted); margin-top:-4px; margin-bottom:10px;">Bloqueado até o fim da fase de liga (após a Jornada 8)</div>
+          <button class="btn-enviar" style="width:100%; padding:11px 0;" disabled id="btn-enviar-campeao" onclick="enviarCampeao()">Enviar campeão</button>
         </div>
       </div>
 
       <div id="sub-real" class="subscreen" style="display:none">
         <div class="real-box">
           <div class="ttl">Classificação real (atualizada diariamente)</div>
-          <div class="real-row"><span class="p">1º</span><span>Paris Saint-Germain</span></div>
-          <div class="real-row"><span class="p">2º</span><span>Real Madrid</span></div>
-          <div class="real-row"><span class="p">3º</span><span>Arsenal</span></div>
-          <div class="real-row" style="color:var(--muted); font-size:11px; padding-top:6px;">... segue até 36º, faixa colorida igual à tabela de palpites</div>
+          <div id="classificacao-real-container"><div class="real-row"><span>Aguardando início da fase de liga</span></div></div>
         </div>
         <div class="real-box">
           <div class="ttl">Artilheiro real</div>
-          <div class="real-row"><span>Aguardando início da fase de liga</span></div>
+          <div id="artilheiro-real-container"><div class="real-row"><span>Aguardando início da fase de liga</span></div></div>
         </div>
       </div>
     </section>
@@ -580,31 +529,7 @@
     <section class="screen" id="screen-placares">
       <h2 class="section-title">Placares reais</h2>
       <p class="section-note">Toque em um jogo para ver o placar oficial e os palpites de todos.</p>
-
-      <div class="placar-real-row" onclick="toggleExpand('exp1')">
-        <div class="placar-real-top">
-          <span>Barcelona x PSG</span>
-          <span class="score">2 - 1</span>
-        </div>
-        <div class="placar-real-sub">Jornada 1 · 07/09/2026</div>
-        <div class="expand" id="exp1">
-          <div class="expand-row"><b>Igor</b><span>2 x 1</span></div>
-          <div class="expand-row"><b>Carlos</b><span>1 x 1</span></div>
-          <div class="expand-row"><b>Renata</b><span>2 x 0</span></div>
-          <div class="expand-row"><b>Bruno</b><span>não enviou</span></div>
-        </div>
-      </div>
-
-      <div class="placar-real-row" onclick="toggleExpand('exp2')">
-        <div class="placar-real-top">
-          <span>Real Madrid x Liverpool</span>
-          <span class="score">Aguardando</span>
-        </div>
-        <div class="placar-real-sub">Jornada 1 · 08/09/2026</div>
-        <div class="expand" id="exp2">
-          <div class="expand-row" style="grid-column:1/-1; color:var(--muted);">Jogo ainda não realizado — palpites ficam ocultos entre os jogadores até o prazo fechar.</div>
-        </div>
-      </div>
+      <div id="placares-container"><p class="section-note">Carregando...</p></div>
     </section>
 
   </main>
@@ -620,165 +545,485 @@
 </div>
 
 <script>
-  const TIMES = ["AEK Athens","Arsenal","Aston Villa","Atlético de Madrid","Bayern München","Barcelona","Bodø/Glimt","Borussia Dortmund","Club Brugge","Como","Fenerbahçe","Feyenoord","Galatasaray","Inter de Milão","LASK","Lens","Lille","Liverpool","Manchester City","Manchester United","Napoli","Paris Saint-Germain","Porto","PSV Eindhoven","RB Leipzig","Real Betis","Real Madrid","Roma","Shakhtar Donetsk","Slavia Praha","Slovan Bratislava","Sporting CP","Stuttgart","Viking","Villarreal"];
+const API_BASE = 'https://script.google.com/macros/s/AKfycbw6KVEtYqYH2EmG4-WanPOlT41AHiSO4iNjyif9OLgqoTWUg9W89JjWDAoTqIui-CsyVw/exec';
 
-  const BANDEIRA = {
-    "AEK Athens":"gr","Arsenal":"gb-eng","Aston Villa":"gb-eng","Atlético de Madrid":"es","Bayern München":"de",
-    "Barcelona":"es","Bodø/Glimt":"no","Borussia Dortmund":"de","Club Brugge":"be","Como":"it",
-    "Fenerbahçe":"tr","Feyenoord":"nl","Galatasaray":"tr","Inter de Milão":"it","LASK":"at",
-    "Lens":"fr","Lille":"fr","Liverpool":"gb-eng","Manchester City":"gb-eng","Manchester United":"gb-eng",
-    "Napoli":"it","Paris Saint-Germain":"fr","Porto":"pt","PSV Eindhoven":"nl","RB Leipzig":"de",
-    "Real Betis":"es","Real Madrid":"es","Roma":"it","Shakhtar Donetsk":"ua","Slavia Praha":"cz",
-    "Slovan Bratislava":"sk","Sporting CP":"pt","Stuttgart":"de","Viking":"no","Villarreal":"es"
-  };
-  function bandeiraImg(nomeTime, cls) {
-    const iso = BANDEIRA[nomeTime];
-    return iso ? `<img class="${cls}" src="https://flagcdn.com/${iso}.svg" alt="">` : '';
+let USUARIO_LOGADO = null;
+let TIMES_CACHE = [];       // lista de objetos vinda da API (Nome_Time, Escudo_URL, ...)
+let JOGOS_CACHE = [];
+let MEUS_PALPITES_CACHE = { resultado: [], extras: null };
+
+const AVATAR_POR_USUARIO = {
+  'Igor': 'avatars/igor.jpg', 'Yuri': 'avatars/yuri.jpg', 'Marco': 'avatars/marco.jpg',
+  'Phelipe': 'avatars/phelipe.jpg', 'Caio': 'avatars/caio.jpg', 'Paulo': 'avatars/paulo.jpg'
+};
+
+// ---------- comunicação com a API ----------
+
+async function apiGet(action, params) {
+  const qs = new URLSearchParams(Object.assign({ action }, params || {})).toString();
+  const resp = await fetch(`${API_BASE}?${qs}`);
+  return resp.json();
+}
+
+async function apiPost(action, body) {
+  const resp = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS no Apps Script
+    body: JSON.stringify(Object.assign({ action }, body || {}))
+  });
+  return resp.json();
+}
+
+function escudoDoTime(nomeTime) {
+  const t = TIMES_CACHE.find(x => x.Nome_Time === nomeTime);
+  return t ? t.Escudo_URL : '';
+}
+
+// ---------- login ----------
+
+async function entrarNoApp() {
+  const usuario = document.getElementById('input-usuario').value.trim();
+  const senha = document.getElementById('input-senha').value;
+  const erroEl = document.getElementById('login-erro');
+  const btn = document.getElementById('btn-entrar');
+  erroEl.style.display = 'none';
+
+  if (!usuario || !senha) {
+    erroEl.textContent = 'Preencha usuário e senha.';
+    erroEl.style.display = 'block';
+    return;
   }
 
-  function goTo(id, btn) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('screen-' + id).classList.add('active');
-    document.querySelectorAll('.tabbar button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-  }
-
-  function subtab(id, el) {
-    document.querySelectorAll('.subscreen').forEach(s => s.style.display = 'none');
-    document.getElementById(id).style.display = 'block';
-    document.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-  }
-
-  function enviarPalpite(cardId) {
-    const card = document.getElementById(cardId);
-    card.classList.add('enviado');
-    card.querySelectorAll('.placar-input').forEach(i => i.disabled = true);
-    const footer = card.querySelector('.jogo-footer');
-    footer.innerHTML = '<div class="prazo">Enviado agora</div><div class="tag-enviado">Registrado</div>';
-  }
-
-  function toggleExpand(id) {
-    document.getElementById(id).classList.toggle('open');
-  }
-
-  function montarTimeList() {
-    const wrap = document.getElementById('team-list');
-    TIMES.forEach((t, i) => {
-      const row = document.createElement('div');
-      row.className = 'team-row';
-      row.innerHTML = `
-        <div class="nm" style="display:flex; align-items:center;">${bandeiraImg(t,'flag-row')}${t}</div>
-        <div class="opt-btn top8" onclick="marcar(this,'top8',${i})">T8</div>
-        <div class="opt-btn top24" onclick="marcar(this,'top24',${i})">24</div>
-        <div class="opt-btn fora" onclick="marcar(this,'fora',${i})">✕</div>
-      `;
-      wrap.appendChild(row);
-    });
-  }
-
-  function trocarTema(tema) {
-    document.body.classList.toggle('theme-light', tema === 'light');
-    document.getElementById('theme-dark-card').classList.toggle('selected', tema === 'dark');
-    document.getElementById('theme-light-card').classList.toggle('selected', tema === 'light');
-  }
-
-  function simularSync() {
-    const btn = document.getElementById('sync-btn');
-    const status = document.getElementById('sync-status');
-    if (!btn) return;
-    btn.classList.add('spinning');
-    status.textContent = 'Atualizando...';
-    setTimeout(() => {
-      btn.classList.remove('spinning');
-      status.textContent = 'Dados atualizados agora';
-    }, 700);
-  }
-
-  function marcar(el, tipo, idx) {
-    const row = el.closest('.team-row');
-    const jaSelecionado = row.querySelector('.opt-btn.selected');
-    const tipoAnterior = jaSelecionado ? [...jaSelecionado.classList].find(c => LIMITES[c] !== undefined) : null;
-
-    if (tipoAnterior === tipo) {
-      el.classList.remove('selected');
-      contagem[tipo]--;
-      atualizarContadores();
+  btn.disabled = true;
+  btn.textContent = 'Entrando...';
+  try {
+    const resp = await apiGet('login', { usuario, senha });
+    if (!resp.ok) {
+      erroEl.textContent = resp.erro || 'Usuário ou senha inválidos.';
+      erroEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
       return;
     }
-    if (contagem[tipo] >= LIMITES[tipo]) {
-      return; // limite atingido, botão já fica desabilitado visualmente
+    const salvar = document.getElementById('save-pass').checked;
+    if (salvar) {
+      localStorage.setItem('bolao_sessao', JSON.stringify({ usuario: resp.usuario }));
+    } else {
+      localStorage.removeItem('bolao_sessao');
     }
-    if (tipoAnterior) contagem[tipoAnterior]--;
-    row.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
-    el.classList.add('selected');
-    contagem[tipo]++;
-    atualizarContadores();
+    await abrirApp(resp.usuario);
+  } catch (e) {
+    erroEl.textContent = 'Não consegui falar com o servidor. Confira sua internet e tente de novo.';
+    erroEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
   }
+}
 
-  const LIMITES = { top8: 8, top24: 16, fora: 12 };
-  const contagem = { top8: 0, top24: 0, fora: 0 };
+async function abrirApp(usuario) {
+  USUARIO_LOGADO = usuario;
+  document.getElementById('user-pill').textContent = usuario;
+  document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('app-shell').style.display = 'flex';
+  await carregarTudo();
+}
 
-  function atualizarContadores() {
-    document.getElementById('count-bar').innerHTML = `
-      <div class="count-chip t8 ${contagem.top8 >= LIMITES.top8 ? 'full' : ''}">T8 ${contagem.top8}/${LIMITES.top8}</div>
-      <div class="count-chip t24 ${contagem.top24 >= LIMITES.top24 ? 'full' : ''}">9-24 ${contagem.top24}/${LIMITES.top24}</div>
-      <div class="count-chip fora ${contagem.fora >= LIMITES.fora ? 'full' : ''}">Fora ${contagem.fora}/${LIMITES.fora}</div>
-    `;
-    document.querySelectorAll('#team-list .opt-btn').forEach(b => {
-      const tipo = ['top8','top24','fora'].find(t => b.classList.contains(t));
-      const atingiu = contagem[tipo] >= LIMITES[tipo] && !b.classList.contains('selected');
-      b.classList.toggle('disabled-limit', atingiu);
-    });
-    const total = contagem.top8 + contagem.top24 + contagem.fora;
-    const btn = document.getElementById('btn-enviar-class');
-    btn.textContent = `Enviar classificação (${total}/36 times marcados)`;
-    btn.disabled = total !== 36;
-  }
+function sair() {
+  localStorage.removeItem('bolao_sessao');
+  USUARIO_LOGADO = null;
+  document.getElementById('config-overlay').classList.remove('open');
+  document.getElementById('app-shell').style.display = 'none';
+  document.getElementById('screen-login').style.display = 'flex';
+  document.getElementById('input-usuario').value = '';
+  document.getElementById('input-senha').value = '';
+  const btn = document.getElementById('btn-entrar');
+  btn.disabled = false;
+  btn.textContent = 'Entrar';
+}
 
-  function enviarClassificacao() {
-    document.querySelectorAll('#team-list .opt-btn').forEach(b => b.style.pointerEvents = 'none');
-    const btn = document.getElementById('btn-enviar-class');
-    btn.textContent = 'Classificação registrada';
-    btn.disabled = true;
-    btn.style.opacity = '0.6';
-  }
+(function restaurarSessao() {
+  try {
+    const salvo = JSON.parse(localStorage.getItem('bolao_sessao'));
+    if (salvo && salvo.usuario) {
+      document.addEventListener('DOMContentLoaded', () => abrirApp(salvo.usuario));
+    }
+  } catch (e) { /* sem sessao salva */ }
+})();
 
-  function enviarArtilheiro() {
-    document.getElementById('art-time').disabled = true;
-    document.getElementById('art-jogador').disabled = true;
-    const btn = document.querySelector('#sub-extras .extra-card:first-child .btn-enviar');
-    btn.textContent = 'Artilheiro registrado';
-    btn.disabled = true;
-    btn.style.opacity = '0.6';
-  }
+// ---------- carregamento geral ----------
 
-  function montarSelects() {
-    const artTime = document.getElementById('art-time');
-    const campeaoTime = document.getElementById('campeao-time');
-    [artTime, campeaoTime].forEach(sel => {
-      sel.innerHTML = '<option value="">Selecione</option>' + TIMES.map(t => `<option>${t}</option>`).join('');
-    });
-  }
-
+async function carregarTudo() {
+  atualizarSyncStatus('Atualizando...');
+  await carregarTimes();
+  await Promise.all([
+    carregarJogosEPalpites(),
+    carregarRanking(),
+    carregarPlacares()
+  ]);
   montarTimeList();
   montarSelects();
   atualizarContadores();
+  atualizarSyncStatus('Dados atualizados agora');
+}
 
-  // Registro do service worker (funcionamento offline do app shell)
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js').catch(() => {});
-    });
+function atualizarSyncStatus(texto) {
+  const el = document.getElementById('sync-status');
+  if (el) el.textContent = texto;
+}
+
+async function simularSync() {
+  const btn = document.getElementById('sync-btn');
+  if (btn) btn.classList.add('spinning');
+  await carregarTudo();
+  if (btn) btn.classList.remove('spinning');
+}
+
+async function carregarTimes() {
+  const resp = await apiGet('times');
+  if (resp.ok) {
+    TIMES_CACHE = resp.dados.filter(t => t.Nome_Time); // remove linha de nota do rodape
   }
+}
 
-  // Trilha de abertura: navegadores bloqueiam audio automatico antes do primeiro toque na
-  // pagina. Quando o mp3 licenciado existir, criar o <audio> aqui e chamar .play() dentro
-  // deste listener (que dispara no primeiro toque em qualquer lugar da tela de login).
-  document.getElementById('screen-login').addEventListener('click', function tocarTrilha() {
-    // ex.: document.getElementById('audio-login').play();
-    document.getElementById('screen-login').removeEventListener('click', tocarTrilha);
-  }, { once: true });
+// ---------- Meus Palpites ----------
+
+async function carregarJogosEPalpites() {
+  const [jogosResp, palpitesResp] = await Promise.all([
+    apiGet('jogos'),
+    apiGet('meus_palpites', { usuario: USUARIO_LOGADO })
+  ]);
+  if (jogosResp.ok) JOGOS_CACHE = jogosResp.dados;
+  if (palpitesResp.ok) MEUS_PALPITES_CACHE = palpitesResp;
+  renderizarJogos();
+}
+
+function renderizarJogos() {
+  const container = document.getElementById('jogos-container');
+  if (!JOGOS_CACHE.length) {
+    container.innerHTML = '<p class="section-note">Nenhum jogo cadastrado ainda.</p>';
+    return;
+  }
+  container.innerHTML = '';
+  JOGOS_CACHE.forEach(jogo => {
+    const meuPalpite = MEUS_PALPITES_CACHE.resultado.find(p => p.ID_Jogo === jogo.ID_Jogo);
+    const encerrado = jogo.Status === 'Encerrado' || (jogo.Resultado_Real && jogo.Resultado_Real !== '');
+    const card = document.createElement('div');
+    card.className = 'jogo-card' + (meuPalpite ? ' enviado' : '');
+
+    const escudoCasa = escudoDoTime(jogo.Time_Casa);
+    const escudoFora = escudoDoTime(jogo.Time_Fora);
+    const imgCasa = escudoCasa ? `<img class="team-badge inline-badge" src="${escudoCasa}" alt="">` : '';
+    const imgFora = escudoFora ? `<img class="team-badge inline-badge" src="${escudoFora}" alt="">` : '';
+
+    let footerHtml;
+    if (meuPalpite && encerrado) {
+      const pontos = meuPalpite.Pontos !== '' && meuPalpite.Pontos !== undefined ? meuPalpite.Pontos : 0;
+      footerHtml = `<div class="prazo">Resultado real: <b style="color:var(--text)">${jogo.Placar_Casa_Real} x ${jogo.Placar_Fora_Real}</b></div>
+        <div class="pts-badge ${pontos > 0 ? 'ganhou' : 'zerou'}">${pontos > 0 ? '+' + pontos + ' pt' : '0 pt'}</div>`;
+    } else if (meuPalpite) {
+      footerHtml = `<div class="prazo">Palpite: <b style="color:var(--text)">${meuPalpite.Palpite}</b></div>
+        <div class="tag-aguardando">Aguardando resultado</div>`;
+    } else if (encerrado) {
+      footerHtml = `<div class="prazo">Você não enviou palpite pra esse jogo</div>`;
+    } else {
+      const prazoTxt = jogo.Data_Hora_Jogo ? 'Envio até 4h antes do jogo' : 'Aguardando data oficial do jogo';
+      footerHtml = `<div class="prazo">${prazoTxt}</div>
+        <button class="btn-enviar" onclick="enviarPalpite('${jogo.ID_Jogo}', this)">Enviar</button>`;
+    }
+
+    card.innerHTML = `
+      <div class="fase">Fase de liga${jogo.Jornada ? ' · ' + jogo.Jornada : ''}${encerrado ? ' · Encerrado' : ''}</div>
+      <div class="jogo-row">
+        <div class="time-lbl esquerda">${imgCasa}${jogo.Time_Casa}</div>
+        <input class="placar-input" type="number" min="0" id="placar-casa-${jogo.ID_Jogo}" ${meuPalpite ? 'disabled' : ''}>
+        <span class="placar-sep">x</span>
+        <input class="placar-input" type="number" min="0" id="placar-fora-${jogo.ID_Jogo}" ${meuPalpite ? 'disabled' : ''}>
+        <div class="time-lbl direita">${jogo.Time_Fora}${imgFora}</div>
+      </div>
+      <div class="jogo-footer">${footerHtml}</div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+async function enviarPalpite(idJogo, btn) {
+  const casa = document.getElementById('placar-casa-' + idJogo).value;
+  const fora = document.getElementById('placar-fora-' + idJogo).value;
+  if (casa === '' || fora === '') { alert('Preencha os dois placares.'); return; }
+
+  let palpite;
+  if (Number(casa) > Number(fora)) palpite = 'Casa';
+  else if (Number(casa) < Number(fora)) palpite = 'Fora';
+  else palpite = 'Empate';
+
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  const resp = await apiPost('enviar_palpite', { usuario: USUARIO_LOGADO, idJogo, palpite });
+  if (!resp.ok) {
+    alert(resp.erro || 'Não consegui enviar o palpite.');
+    btn.disabled = false;
+    btn.textContent = 'Enviar';
+    return;
+  }
+  await carregarJogosEPalpites();
+}
+
+// ---------- Ranking ----------
+
+async function carregarRanking() {
+  const resp = await apiGet('ranking');
+  if (!resp.ok) return;
+  const ranking = resp.dados;
+
+  const podiumEl = document.getElementById('podium-container');
+  const listEl = document.getElementById('rank-list-container');
+  podiumEl.innerHTML = '';
+  listEl.innerHTML = '';
+
+  const posicoes = [
+    { classe: 'p2', idx: 1 }, { classe: 'p1', idx: 0 }, { classe: 'p3', idx: 2 }
+  ];
+  posicoes.forEach(pos => {
+    const r = ranking[pos.idx];
+    if (!r) return;
+    const avatar = AVATAR_POR_USUARIO[r.usuario] || '';
+    const slot = document.createElement('div');
+    slot.className = 'slot ' + pos.classe;
+    slot.innerHTML = `
+      <div class="avatar">${avatar ? `<img src="${avatar}" alt="${r.usuario}">` : r.usuario.slice(0, 2).toUpperCase()}</div>
+      <div class="name">${r.usuario}</div>
+      <div class="pts">${r.pontos_total} pts</div>
+      <div class="bar">${pos.idx + 1}</div>
+    `;
+    podiumEl.appendChild(slot);
+  });
+
+  ranking.slice(3).forEach((r, i) => {
+    const avatar = AVATAR_POR_USUARIO[r.usuario] || '';
+    const row = document.createElement('div');
+    row.className = 'rank-row';
+    row.innerHTML = `
+      <div class="pos">${i + 4}</div>
+      ${avatar ? `<img class="row-avatar" src="${avatar}" alt="">` : ''}
+      <div class="nm">${r.usuario}</div>
+      <div class="pt">${r.pontos_total}</div>
+    `;
+    listEl.appendChild(row);
+  });
+}
+
+// ---------- Placares Reais ----------
+
+async function carregarPlacares() {
+  const resp = await apiGet('placares');
+  const container = document.getElementById('placares-container');
+  if (!resp.ok) { container.innerHTML = '<p class="section-note">Não consegui carregar os placares.</p>'; return; }
+
+  const jogos = resp.dados;
+  if (!jogos.length) { container.innerHTML = '<p class="section-note">Nenhum jogo cadastrado ainda.</p>'; return; }
+
+  container.innerHTML = '';
+  jogos.forEach((jogo, i) => {
+    const encerrado = jogo.Status === 'Encerrado' || (jogo.Placar_Casa_Real !== '' && jogo.Placar_Casa_Real !== undefined);
+    const expandId = 'exp-' + i;
+    const row = document.createElement('div');
+    row.className = 'placar-real-row';
+    row.onclick = () => toggleExpand(expandId);
+
+    let expandHtml;
+    if (encerrado) {
+      expandHtml = jogo.palpites.length
+        ? jogo.palpites.map(p => `<div class="expand-row"><b>${p.ID_Usuario}</b><span>${p.Palpite}</span></div>`).join('')
+        : '<div class="expand-row" style="color:var(--muted);">Ninguém enviou palpite pra esse jogo.</div>';
+    } else {
+      expandHtml = '<div class="expand-row" style="grid-column:1/-1; color:var(--muted);">Jogo ainda não realizado — palpites ficam ocultos entre os jogadores até o prazo fechar.</div>';
+    }
+
+    row.innerHTML = `
+      <div class="placar-real-top">
+        <span>${jogo.Time_Casa} x ${jogo.Time_Fora}</span>
+        <span class="score">${encerrado ? jogo.Placar_Casa_Real + ' - ' + jogo.Placar_Fora_Real : 'Aguardando'}</span>
+      </div>
+      <div class="expand" id="${expandId}">${expandHtml}</div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+// ---------- Classificação (palpites do usuário) ----------
+
+function montarTimeList() {
+  const wrap = document.getElementById('team-list');
+  wrap.innerHTML = '';
+  TIMES_CACHE.slice().sort((a, b) => a.Nome_Time.localeCompare(b.Nome_Time)).forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'team-row';
+    const escudo = t.Escudo_URL ? `<img class="team-badge row-badge" src="${t.Escudo_URL}" alt="">` : '';
+    row.innerHTML = `
+      <div class="nm" style="display:flex; align-items:center;">${escudo}${t.Nome_Time}</div>
+      <div class="opt-btn top8" onclick="marcar(this,'top8',${i})">T8</div>
+      <div class="opt-btn top24" onclick="marcar(this,'top24',${i})">24</div>
+      <div class="opt-btn fora" onclick="marcar(this,'fora',${i})">✕</div>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function montarSelects() {
+  const artTime = document.getElementById('art-time');
+  const campeaoTime = document.getElementById('campeao-time');
+  const nomes = TIMES_CACHE.map(t => t.Nome_Time).sort();
+  [artTime, campeaoTime].forEach(sel => {
+    sel.innerHTML = '<option value="">Selecione</option>' + nomes.map(n => `<option>${n}</option>`).join('');
+  });
+}
+
+const LIMITES = { top8: 8, top24: 16, fora: 12 };
+const contagem = { top8: 0, top24: 0, fora: 0 };
+
+function marcar(el, tipo, idx) {
+  const row = el.closest('.team-row');
+  const jaSelecionado = row.querySelector('.opt-btn.selected');
+  const tipoAnterior = jaSelecionado ? [...jaSelecionado.classList].find(c => LIMITES[c] !== undefined) : null;
+
+  if (tipoAnterior === tipo) {
+    el.classList.remove('selected');
+    contagem[tipo]--;
+    atualizarContadores();
+    return;
+  }
+  if (contagem[tipo] >= LIMITES[tipo]) return;
+  if (tipoAnterior) contagem[tipoAnterior]--;
+  row.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  contagem[tipo]++;
+  atualizarContadores();
+}
+
+function atualizarContadores() {
+  const bar = document.getElementById('count-bar');
+  if (!bar) return;
+  bar.innerHTML = `
+    <div class="count-chip t8 ${contagem.top8 >= LIMITES.top8 ? 'full' : ''}">T8 ${contagem.top8}/${LIMITES.top8}</div>
+    <div class="count-chip t24 ${contagem.top24 >= LIMITES.top24 ? 'full' : ''}">9-24 ${contagem.top24}/${LIMITES.top24}</div>
+    <div class="count-chip fora ${contagem.fora >= LIMITES.fora ? 'full' : ''}">Fora ${contagem.fora}/${LIMITES.fora}</div>
+  `;
+  document.querySelectorAll('#team-list .opt-btn').forEach(b => {
+    const tipo = ['top8', 'top24', 'fora'].find(t => b.classList.contains(t));
+    const atingiu = contagem[tipo] >= LIMITES[tipo] && !b.classList.contains('selected');
+    b.classList.toggle('disabled-limit', atingiu);
+  });
+  const total = contagem.top8 + contagem.top24 + contagem.fora;
+  const btn = document.getElementById('btn-enviar-class');
+  if (btn) {
+    btn.textContent = `Enviar classificação (${total}/36 times marcados)`;
+    btn.disabled = total !== 36;
+  }
+}
+
+async function enviarClassificacao() {
+  const linhas = [...document.querySelectorAll('#team-list .team-row')];
+  const top8 = [], top24 = [];
+  linhas.forEach(row => {
+    const nome = row.querySelector('.nm').textContent.trim();
+    const sel = row.querySelector('.opt-btn.selected');
+    if (!sel) return;
+    if (sel.classList.contains('top8')) top8.push(nome);
+    if (sel.classList.contains('top24')) top24.push(nome);
+  });
+
+  const btn = document.getElementById('btn-enviar-class');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  const resp = await apiPost('enviar_classificacao', { usuario: USUARIO_LOGADO, top8, top24 });
+  if (!resp.ok) {
+    alert(resp.erro || 'Não consegui enviar a classificação.');
+    atualizarContadores();
+    return;
+  }
+  document.querySelectorAll('#team-list .opt-btn').forEach(b => b.style.pointerEvents = 'none');
+  btn.textContent = 'Classificação registrada';
+}
+
+async function enviarArtilheiro() {
+  const time = document.getElementById('art-time').value;
+  const jogador = document.getElementById('art-jogador').value.trim();
+  if (!time || !jogador) { alert('Escolha o time e digite o nome do jogador.'); return; }
+
+  const btn = document.getElementById('btn-enviar-art');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  const resp = await apiPost('enviar_artilheiro', { usuario: USUARIO_LOGADO, time, jogador });
+  if (!resp.ok) {
+    alert(resp.erro || 'Não consegui enviar o artilheiro.');
+    btn.disabled = false;
+    btn.textContent = 'Enviar artilheiro';
+    return;
+  }
+  document.getElementById('art-time').disabled = true;
+  document.getElementById('art-jogador').disabled = true;
+  btn.textContent = 'Artilheiro registrado';
+}
+
+async function enviarCampeao() {
+  const time = document.getElementById('campeao-time').value;
+  if (!time) { alert('Escolha um time.'); return; }
+
+  const btn = document.getElementById('btn-enviar-campeao');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  const resp = await apiPost('enviar_campeao', { usuario: USUARIO_LOGADO, time });
+  if (!resp.ok) {
+    alert(resp.erro || 'Não consegui enviar o campeão.');
+    btn.disabled = false;
+    btn.textContent = 'Enviar campeão';
+    return;
+  }
+  document.getElementById('campeao-time').disabled = true;
+  btn.textContent = 'Campeão registrado';
+}
+
+// ---------- navegação de telas ----------
+
+function goTo(id, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  document.querySelectorAll('.tabbar button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function subtab(id, el) {
+  document.querySelectorAll('.subscreen').forEach(s => s.style.display = 'none');
+  document.getElementById(id).style.display = 'block';
+  document.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function toggleExpand(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function trocarTema(tema) {
+  document.body.classList.toggle('theme-light', tema === 'light');
+  document.getElementById('theme-dark-card').classList.toggle('selected', tema === 'dark');
+  document.getElementById('theme-light-card').classList.toggle('selected', tema === 'light');
+}
+
+// service worker + trilha de abertura
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  });
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const loginScreen = document.getElementById('screen-login');
+  if (loginScreen) {
+    loginScreen.addEventListener('click', function tocarTrilha() {
+      // ex.: document.getElementById('audio-login').play();
+      loginScreen.removeEventListener('click', tocarTrilha);
+    }, { once: true });
+  }
+});
 </script>
 
 </body>
