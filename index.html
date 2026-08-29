@@ -163,7 +163,9 @@
   }
   .placar-input:focus { outline: none; border-color: var(--gold); }
   .placar-sep { color: var(--muted); font-weight: 600; }
-  .jogo-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+  .jogo-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; flex-wrap: wrap; gap: 6px; row-gap: 4px; }
+  .jogo-footer > div.prazo { flex-basis: 100%; }
+  .jogo-footer > div.prazo:last-of-type { flex-basis: auto; }
   .prazo { font-size: 11px; color: var(--muted); }
   .prazo b { color: var(--amarelo); font-weight: 600; }
   .btn-enviar {
@@ -221,6 +223,15 @@
     flex: 1; text-align: center; padding: 7px 0; border-radius: 8px; font-size: 11.5px; font-weight: 600;
     border: 1px solid var(--border); background: var(--card);
   }
+  .rodada-filtro {
+    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .rodada-chip {
+    flex: 0 0 auto; padding: 7px 13px; border-radius: 20px; font-size: 11.5px; font-weight: 600;
+    border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; white-space: nowrap;
+  }
+  .rodada-chip.active { background: var(--card-2); color: var(--gold); border-color: var(--gold-dim); }
   .count-chip.t8 { color: var(--verde); }
   .count-chip.t24 { color: var(--amarelo); }
   .count-chip.fora { color: var(--vermelho); }
@@ -511,6 +522,7 @@
     <section class="screen" id="screen-palpites">
       <h2 class="section-title">Meus palpites</h2>
       <p class="section-note">Prazo sempre até 4h antes do jogo. Depois de enviado, o placar não pode mais ser alterado. Assim que o resultado real sai, o cartão mostra o placar oficial e os pontos ganhos nesse jogo.</p>
+      <div class="rodada-filtro" id="rodada-filtro"></div>
       <div id="jogos-container"><p class="section-note">Carregando jogos...</p></div>
     </section>
 
@@ -911,6 +923,7 @@ async function carregarJogosEPalpites() {
   ]);
   if (jogosResp.ok) JOGOS_CACHE = jogosResp.dados;
   if (palpitesResp.ok) MEUS_PALPITES_CACHE = palpitesResp;
+  montarFiltroRodadas();
   renderizarJogos();
   atualizarStatAcertos();
 }
@@ -940,6 +953,51 @@ function atualizarStatAcertos() {
   }
 }
 
+function formatarDataJogoEPrazo(dataHoraJogo) {
+  if (!dataHoraJogo) return 'Aguardando data oficial do jogo';
+  const dataJogo = new Date(dataHoraJogo);
+  if (isNaN(dataJogo)) return 'Aguardando data oficial do jogo';
+  const fmt = d => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' +
+    d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return `Jogo: ${fmt(dataJogo)}`;
+}
+
+function calcularContagemRegressiva(prazo) {
+  const diff = prazo.getTime() - Date.now();
+  if (diff <= 0) return { texto: 'Prazo encerrado', encerrado: true };
+  const totalMin = Math.floor(diff / 60000);
+  const dias = Math.floor(totalMin / (60 * 24));
+  const horas = Math.floor((totalMin % (60 * 24)) / 60);
+  const min = totalMin % 60;
+  let texto = 'Envio fecha em ';
+  if (dias > 0) texto += `${dias}d ${horas}h`;
+  else if (horas > 0) texto += `${horas}h ${min}min`;
+  else texto += `${min}min`;
+  return { texto, encerrado: false };
+}
+
+function iniciarContagensRegressivas() {
+  if (window.__intervaloContagem) clearInterval(window.__intervaloContagem);
+  window.__intervaloContagem = setInterval(() => {
+    document.querySelectorAll('[data-prazo]').forEach(el => {
+      const prazo = new Date(el.dataset.prazo);
+      const { texto, encerrado } = calcularContagemRegressiva(prazo);
+      el.textContent = texto;
+      el.style.color = encerrado ? 'var(--vermelho)' : (prazo - Date.now() < 30 * 60 * 1000 ? 'var(--amarelo)' : 'var(--muted)');
+    });
+    document.querySelectorAll('[data-kickoff]').forEach(el => {
+      const kickoff = new Date(el.dataset.kickoff);
+      const diff = kickoff.getTime() - Date.now();
+      if (diff <= 0) { el.textContent = 'Em andamento'; return; }
+      const totalMin = Math.floor(diff / 60000);
+      const dias = Math.floor(totalMin / (60 * 24));
+      const horas = Math.floor((totalMin % (60 * 24)) / 60);
+      const min = totalMin % 60;
+      el.textContent = dias > 0 ? `Em ${dias}d ${horas}h` : (horas > 0 ? `Em ${horas}h ${min}min` : `Em ${min}min`);
+    });
+  }, 1000);
+}
+
 function renderizarJogos() {
   const container = document.getElementById('jogos-container');
   if (!JOGOS_CACHE.length) {
@@ -947,7 +1005,20 @@ function renderizarJogos() {
     return;
   }
   container.innerHTML = '';
-  JOGOS_CACHE.forEach(jogo => {
+  const jogosFiltrados = JORNADA_FILTRO_ATIVA === 'todas'
+    ? JOGOS_CACHE
+    : JOGOS_CACHE.filter(j => j.Jornada === JORNADA_FILTRO_ATIVA);
+  const jogosOrdenados = jogosFiltrados.slice().sort((a, b) => {
+    const da = a.Data_Hora_Jogo ? new Date(a.Data_Hora_Jogo).getTime() : Infinity;
+    const db = b.Data_Hora_Jogo ? new Date(b.Data_Hora_Jogo).getTime() : Infinity;
+    if (da !== db) return da - db;
+    return a.ID_Jogo.localeCompare(b.ID_Jogo);
+  });
+  if (!jogosOrdenados.length) {
+    container.innerHTML = '<p class="section-note">Nenhum jogo nessa rodada.</p>';
+    return;
+  }
+  jogosOrdenados.forEach(jogo => {
     const meuPalpite = MEUS_PALPITES_CACHE.resultado.find(p => p.ID_Jogo === jogo.ID_Jogo);
     const encerrado = jogo.Status === 'Encerrado' || (jogo.Resultado_Real && jogo.Resultado_Real !== '');
     const card = document.createElement('div');
@@ -969,8 +1040,14 @@ function renderizarJogos() {
     } else if (encerrado) {
       footerHtml = `<div class="prazo">Você não enviou palpite pra esse jogo</div>`;
     } else {
-      const prazoTxt = jogo.Data_Hora_Jogo ? 'Envio até 4h antes do jogo' : 'Aguardando data oficial do jogo';
-      footerHtml = `<div class="prazo">${prazoTxt}</div>
+      const dataTxt = formatarDataJogoEPrazo(jogo.Data_Hora_Jogo);
+      let contagemHtml = '';
+      if (jogo.Data_Hora_Jogo) {
+        const prazoDate = new Date(new Date(jogo.Data_Hora_Jogo).getTime() - 4 * 60 * 60 * 1000);
+        contagemHtml = `<div class="prazo" data-prazo="${prazoDate.toISOString()}" style="font-weight:600;"></div>`;
+      }
+      footerHtml = `<div class="prazo">${dataTxt}</div>
+        ${contagemHtml}
         <button class="btn-enviar" onclick="enviarPalpite('${jogo.ID_Jogo}', this)">Enviar</button>`;
     }
 
@@ -989,6 +1066,7 @@ function renderizarJogos() {
     `;
     container.appendChild(card);
   });
+  iniciarContagensRegressivas();
 }
 
 async function enviarPalpite(idJogo, btn) {
@@ -1181,12 +1259,59 @@ async function carregarRanking() {
 
 // ---------- Placares Reais ----------
 
+let JORNADA_FILTRO_ATIVA = 'todas';
+
+function montarFiltroRodadas() {
+  const container = document.getElementById('rodada-filtro');
+  const porJornada = {};
+  JOGOS_CACHE.forEach(j => {
+    if (!j.Jornada) return;
+    if (!porJornada[j.Jornada]) porJornada[j.Jornada] = [];
+    if (j.Data_Hora_Jogo) porJornada[j.Jornada].push(new Date(j.Data_Hora_Jogo));
+  });
+
+  const nomesOrdenados = Object.keys(porJornada).sort((a, b) => {
+    const da = porJornada[a][0] ? porJornada[a][0].getTime() : Infinity;
+    const db = porJornada[b][0] ? porJornada[b][0].getTime() : Infinity;
+    return da - db;
+  });
+
+  if (!nomesOrdenados.length) { container.innerHTML = ''; return; }
+
+  const fmtCurta = d => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  let html = `<div class="rodada-chip ${JORNADA_FILTRO_ATIVA === 'todas' ? 'active' : ''}" onclick="filtrarPorRodada('todas')">Todas</div>`;
+  nomesOrdenados.forEach(nome => {
+    const datas = porJornada[nome].sort((a, b) => a - b);
+    const intervalo = datas.length ? `${fmtCurta(datas[0])}${datas.length > 1 ? '-' + fmtCurta(datas[datas.length - 1]) : ''}` : '';
+    html += `<div class="rodada-chip ${JORNADA_FILTRO_ATIVA === nome ? 'active' : ''}" onclick="filtrarPorRodada('${nome}')">${nome}${intervalo ? ' · ' + intervalo : ''}</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function filtrarPorRodada(nome) {
+  JORNADA_FILTRO_ATIVA = nome;
+  montarFiltroRodadas();
+  renderizarJogos();
+}
+
+function formatarDataCurta(dataHoraJogo) {
+  const d = new Date(dataHoraJogo);
+  if (isNaN(d)) return '';
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' +
+    d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
 async function carregarPlacares() {
   const resp = await apiGet('placares');
   const container = document.getElementById('placares-container');
   if (!resp.ok) { container.innerHTML = '<p class="section-note">Não consegui carregar os placares.</p>'; return; }
 
-  const jogos = resp.dados;
+  const jogos = resp.dados.slice().sort((a, b) => {
+    const da = a.Data_Hora_Jogo ? new Date(a.Data_Hora_Jogo).getTime() : Infinity;
+    const db = b.Data_Hora_Jogo ? new Date(b.Data_Hora_Jogo).getTime() : Infinity;
+    if (da !== db) return da - db;
+    return a.ID_Jogo.localeCompare(b.ID_Jogo);
+  });
   if (!jogos.length) { container.innerHTML = '<p class="section-note">Nenhum jogo cadastrado ainda.</p>'; return; }
 
   container.innerHTML = '';
@@ -1206,15 +1331,22 @@ async function carregarPlacares() {
       expandHtml = '<div class="expand-row" style="grid-column:1/-1; color:var(--muted);">Jogo ainda não realizado — palpites ficam ocultos entre os jogadores até o prazo fechar.</div>';
     }
 
+    const dataTxt = jogo.Data_Hora_Jogo ? formatarDataCurta(jogo.Data_Hora_Jogo) : '';
+    const contagemKickoff = (!encerrado && jogo.Data_Hora_Jogo)
+      ? `<span class="score" data-kickoff="${new Date(jogo.Data_Hora_Jogo).toISOString()}"></span>`
+      : `<span class="score">${encerrado ? jogo.Placar_Casa_Real + ' - ' + jogo.Placar_Fora_Real : 'Aguardando'}</span>`;
+
     row.innerHTML = `
       <div class="placar-real-top">
         <span>${jogo.Time_Casa} x ${jogo.Time_Fora}</span>
-        <span class="score">${encerrado ? jogo.Placar_Casa_Real + ' - ' + jogo.Placar_Fora_Real : 'Aguardando'}</span>
+        ${encerrado ? `<span class="score">${jogo.Placar_Casa_Real} - ${jogo.Placar_Fora_Real}</span>` : contagemKickoff}
       </div>
+      <div class="placar-real-sub">${jogo.Jornada || ''}${jogo.Jornada && dataTxt ? ' · ' : ''}${dataTxt}</div>
       <div class="expand" id="${expandId}">${expandHtml}</div>
     `;
     container.appendChild(row);
   });
+  iniciarContagensRegressivas();
 }
 
 // ---------- Classificação (palpites do usuário) ----------
