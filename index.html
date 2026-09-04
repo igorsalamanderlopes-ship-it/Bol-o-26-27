@@ -1130,6 +1130,16 @@ function formatarDataRss(dataStr) {
 
 const ADMINS_PAGAMENTO = ['Paulo', 'Igor'];
 
+const NOMES_MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function formatarMesReferencia(mesRef) {
+  const partes = String(mesRef).split('-');
+  if (partes.length !== 2) return mesRef;
+  const ano = partes[0];
+  const mesIdx = parseInt(partes[1], 10) - 1;
+  const nome = NOMES_MESES_PT[mesIdx];
+  return nome ? `${nome}/${ano}` : mesRef;
+}
+
 async function carregarMensalidade() {
   const resp = await apiGet('mensalidades');
   const container = document.getElementById('mensalidade-container');
@@ -1165,7 +1175,7 @@ async function carregarMensalidade() {
         html += `
           <div class="jogo-card" style="padding:10px 14px; margin-bottom:8px;">
             <div class="jogo-footer" style="margin-top:0;">
-              <div class="prazo"><b style="color:var(--text)">${m.Mes_Referencia}</b> — R$ ${m.Valor},00</div>
+              <div class="prazo"><b style="color:var(--text)">${formatarMesReferencia(m.Mes_Referencia)}</b> — R$ ${m.Valor},00</div>
               ${pago
                 ? `<div class="tag-enviado">Pago</div>`
                 : `<button class="btn-enviar" onclick="marcarPago('${usuario}', '${m.Mes_Referencia}', this)">Confirmar</button>`}
