@@ -261,7 +261,8 @@
   .placar-real-row {
     background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer;
   }
-  .placar-real-top { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; }
+  .placar-real-top { display: flex; align-items: flex-start; justify-content: space-between; font-size: 12.5px; gap: 8px; }
+  .placar-real-top .score { padding-top: 6px; flex-shrink: 0; }
   .placar-real-top .score { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; color: var(--gold); }
   .placar-real-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
   .expand { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
@@ -1369,6 +1370,10 @@ async function carregarPlacares() {
     }
 
     const dataTxt = jogo.Data_Hora_Jogo ? formatarDataCurta(jogo.Data_Hora_Jogo) : '';
+    const escudoCasaPlacar = escudoDoTime(jogo.Time_Casa);
+    const escudoForaPlacar = escudoDoTime(jogo.Time_Fora);
+    const imgCasa = escudoCasaPlacar ? `<img class="team-badge inline-badge" src="${escudoCasaPlacar}" alt="" referrerpolicy="no-referrer">` : '';
+    const imgFora = escudoForaPlacar ? `<img class="team-badge inline-badge" src="${escudoForaPlacar}" alt="" referrerpolicy="no-referrer">` : '';
     const aoVivo = AO_VIVO_CACHE[jogo.ID_Jogo];
 
     let scoreHtml, subHtml;
@@ -1388,8 +1393,9 @@ async function carregarPlacares() {
 
     row.innerHTML = `
       <div class="placar-real-top">
-        <span>${jogo.Time_Casa} x ${jogo.Time_Fora}</span>
+        <div class="time-lbl esquerda" style="flex:1;">${imgCasa}<span>${jogo.Time_Casa}</span></div>
         ${scoreHtml}
+        <div class="time-lbl direita" style="flex:1;">${imgFora}<span>${jogo.Time_Fora}</span></div>
       </div>
       <div class="placar-real-sub">${subHtml}</div>
       <div class="expand" id="${expandId}">${expandHtml}</div>
