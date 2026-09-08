@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bolao-26-27-v3';
+const CACHE_NAME = 'bolao-26-27-v4';
 const APP_SHELL = [
   './',
   './index.html',
@@ -24,11 +24,11 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// App shell: cache-first. Chamadas ao Graph API (onedrive/sharepoint/graph.microsoft.com)
+// App shell: cache-first. Chamadas a qualquer API (script.google.com, graph.microsoft.com etc.)
 // nunca devem ser cacheadas — sempre precisam ir para a rede, senão os dados ficam desatualizados.
 self.addEventListener('fetch', (event) => {
   const url = event.request.url;
-  const isApiCall = url.includes('graph.microsoft.com') || url.includes('login.microsoftonline.com');
+  const isApiCall = url.includes('script.google.com') || url.includes('graph.microsoft.com') || url.includes('login.microsoftonline.com');
   if (isApiCall) {
     event.respondWith(fetch(event.request));
     return;
