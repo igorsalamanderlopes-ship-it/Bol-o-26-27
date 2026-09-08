@@ -561,7 +561,7 @@
       </div>
 
       <div id="sub-comparativo" class="subscreen" style="display:none">
-        <p class="section-note">Classificação enviada por cada participante que já confirmou. <span style="color:var(--verde);">Verde</span> = Top 8, <span style="color:var(--amarelo);">amarelo</span> = 9º-24º, vazio = fora.</p>
+        <p class="section-note">Classificação enviada por cada participante que já confirmou. <span style="color:var(--verde);">Verde O</span> = Top 8, <span style="color:var(--amarelo);">amarelo !</span> = 9º-24º, <span style="color:var(--vermelho);">vermelho X</span> = fora.</p>
         <div id="comparativo-container" style="overflow-x:auto;"><p class="section-note">Carregando...</p></div>
       </div>
 
@@ -1408,11 +1408,11 @@ async function carregarComparativoClassificacao() {
       const top24 = [];
       for (let i = 1; i <= 8; i++) if (p['Top8_' + i]) top8.push(p['Top8_' + i]);
       for (let i = 9; i <= 24; i++) if (p['Top24_' + i]) top24.push(p['Top24_' + i]);
-      let cor = 'transparent';
-      let simbolo = '';
-      if (top8.includes(t.Nome_Time)) { cor = 'var(--verde-bg)'; simbolo = '✓'; }
-      else if (top24.includes(t.Nome_Time)) { cor = 'var(--amarelo-bg)'; simbolo = '✓'; }
-      html += `<td style="text-align:center; background:${cor}; padding:6px;">${simbolo}</td>`;
+      let cor, texto, simbolo;
+      if (top8.includes(t.Nome_Time)) { cor = 'var(--verde-bg)'; texto = 'var(--verde)'; simbolo = 'O'; }
+      else if (top24.includes(t.Nome_Time)) { cor = 'var(--amarelo-bg)'; texto = 'var(--amarelo)'; simbolo = '!'; }
+      else { cor = 'var(--vermelho-bg)'; texto = 'var(--vermelho)'; simbolo = 'X'; }
+      html += `<td style="text-align:center; background:${cor}; color:${texto}; font-weight:700; padding:6px;">${simbolo}</td>`;
     });
     html += '</tr>';
   });
