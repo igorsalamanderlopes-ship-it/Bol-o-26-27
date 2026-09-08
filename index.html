@@ -1330,12 +1330,18 @@ function formatarDataCurta(dataHoraJogo) {
 }
 
 let PLACARES_CACHE = [];
+let AO_VIVO_CACHE = {};
 
 async function carregarPlacares() {
-  const resp = await apiGet('placares');
+  const [resp, respAoVivo] = await Promise.all([apiGet('placares'), apiGet('ao_vivo')]);
   const container = document.getElementById('placares-container');
   if (!resp.ok) { container.innerHTML = '<p class="section-note">Não consegui carregar os placares.</p>'; return; }
   PLACARES_CACHE = resp.dados;
+
+  AO_VIVO_CACHE = {};
+  if (respAoVivo.ok) {
+    respAoVivo.dados.forEach(av => { AO_VIVO_CACHE[av.ID_Jogo] = av; });
+  }
 
   const jogos = resp.dados.slice().sort((a, b) => {
     const da = a.Data_Hora_Jogo ? new Date(a.Data_Hora_Jogo).getTime() : Infinity;
@@ -1363,16 +1369,29 @@ async function carregarPlacares() {
     }
 
     const dataTxt = jogo.Data_Hora_Jogo ? formatarDataCurta(jogo.Data_Hora_Jogo) : '';
-    const contagemKickoff = (!encerrado && jogo.Data_Hora_Jogo)
-      ? `<span class="score" data-kickoff="${new Date(jogo.Data_Hora_Jogo).toISOString()}"></span>`
-      : `<span class="score">${encerrado ? jogo.Placar_Casa_Real + ' - ' + jogo.Placar_Fora_Real : 'Aguardando'}</span>`;
+    const aoVivo = AO_VIVO_CACHE[jogo.ID_Jogo];
+
+    let scoreHtml, subHtml;
+    if (encerrado) {
+      scoreHtml = `<span class="score">${jogo.Placar_Casa_Real} - ${jogo.Placar_Fora_Real}</span>`;
+      subHtml = `${jogo.Jornada || ''}${jogo.Jornada && dataTxt ? ' · ' : ''}${dataTxt}`;
+    } else if (aoVivo) {
+      scoreHtml = `<span class="score" style="color:var(--verde);">${aoVivo.placarCasa} - ${aoVivo.placarFora}</span>`;
+      subHtml = `<span style="color:var(--verde); font-weight:600;">● AO VIVO</span> · ${aoVivo.periodo}${aoVivo.minuto ? ' · ' + aoVivo.minuto : ''}`;
+    } else {
+      const contagemKickoff = jogo.Data_Hora_Jogo
+        ? `<span class="score" data-kickoff="${new Date(jogo.Data_Hora_Jogo).toISOString()}"></span>`
+        : `<span class="score">Aguardando</span>`;
+      scoreHtml = contagemKickoff;
+      subHtml = `${jogo.Jornada || ''}${jogo.Jornada && dataTxt ? ' · ' : ''}${dataTxt}`;
+    }
 
     row.innerHTML = `
       <div class="placar-real-top">
         <span>${jogo.Time_Casa} x ${jogo.Time_Fora}</span>
-        ${encerrado ? `<span class="score">${jogo.Placar_Casa_Real} - ${jogo.Placar_Fora_Real}</span>` : contagemKickoff}
+        ${scoreHtml}
       </div>
-      <div class="placar-real-sub">${jogo.Jornada || ''}${jogo.Jornada && dataTxt ? ' · ' : ''}${dataTxt}</div>
+      <div class="placar-real-sub">${subHtml}</div>
       <div class="expand" id="${expandId}">${expandHtml}</div>
     `;
     container.appendChild(row);
