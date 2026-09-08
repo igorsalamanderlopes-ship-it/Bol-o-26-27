@@ -531,6 +531,7 @@
       <div class="subtabs">
         <div class="subtab active" onclick="subtab('sub-palp', this)">Meus palpites</div>
         <div class="subtab" onclick="subtab('sub-extras', this)">Artilheiro / Campeão</div>
+        <div class="subtab" onclick="subtab('sub-comparativo', this); carregarComparativoClassificacao();">Comparativo</div>
         <div class="subtab" onclick="subtab('sub-real', this)">Resultado real</div>
       </div>
 
@@ -557,6 +558,11 @@
           <div style="font-size:11px; color:var(--muted); margin-top:-4px; margin-bottom:10px;">Bloqueado até o fim da fase de liga (após a Jornada 8)</div>
           <button class="btn-enviar" style="width:100%; padding:11px 0;" disabled id="btn-enviar-campeao" onclick="enviarCampeao()">Enviar campeão</button>
         </div>
+      </div>
+
+      <div id="sub-comparativo" class="subscreen" style="display:none">
+        <p class="section-note">Classificação enviada por cada participante que já confirmou. <span style="color:var(--verde);">Verde</span> = Top 8, <span style="color:var(--amarelo);">amarelo</span> = 9º-24º, vazio = fora.</p>
+        <div id="comparativo-container" style="overflow-x:auto;"><p class="section-note">Carregando...</p></div>
       </div>
 
       <div id="sub-real" class="subscreen" style="display:none">
@@ -841,6 +847,7 @@ async function carregarTudo() {
   montarSelects();
   atualizarContadores();
   aplicarEstadoExtrasJaEnviados();
+  renderizarJogos(); // reforça com PLACARES_CACHE já disponível (mostra quem nao enviou apos prazo fechado)
   atualizarSyncStatus('Dados atualizados agora');
 }
 
@@ -1022,7 +1029,6 @@ function renderizarJogos() {
     const meuPalpite = MEUS_PALPITES_CACHE.resultado.find(p => p.ID_Jogo === jogo.ID_Jogo);
     const encerrado = jogo.Status === 'Encerrado' || (jogo.Resultado_Real && jogo.Resultado_Real !== '');
     const card = document.createElement('div');
-    card.className = 'jogo-card' + (meuPalpite ? ' enviado' : '');
 
     const escudoCasa = escudoDoTime(jogo.Time_Casa);
     const escudoFora = escudoDoTime(jogo.Time_Fora);
@@ -1030,6 +1036,8 @@ function renderizarJogos() {
     const imgFora = escudoFora ? `<img class="team-badge inline-badge" src="${escudoFora}" alt="" referrerpolicy="no-referrer">` : '';
 
     let footerHtml;
+    const prazoJaFechou = jogo.Data_Hora_Jogo && (Date.now() > new Date(jogo.Data_Hora_Jogo).getTime() - 4 * 60 * 60 * 1000);
+
     if (meuPalpite && encerrado) {
       const pontos = meuPalpite.Pontos !== '' && meuPalpite.Pontos !== undefined ? meuPalpite.Pontos : 0;
       footerHtml = `<div class="prazo">Resultado real: <b style="color:var(--text)">${jogo.Placar_Casa_Real} x ${jogo.Placar_Fora_Real}</b></div>
@@ -1039,6 +1047,14 @@ function renderizarJogos() {
         <div class="tag-aguardando">Aguardando resultado</div>`;
     } else if (encerrado) {
       footerHtml = `<div class="prazo">Você não enviou palpite pra esse jogo</div>`;
+    } else if (prazoJaFechou) {
+      // prazo de envio ja fechou mas o jogo ainda nao aconteceu/terminou - trava o card e mostra quem enviou o que
+      const jogoPlacares = PLACARES_CACHE.find(p => p.ID_Jogo === jogo.ID_Jogo);
+      const listaPalpites = jogoPlacares && jogoPlacares.palpites && jogoPlacares.palpites.length
+        ? jogoPlacares.palpites.map(p => `<div class="expand-row"><b>${p.ID_Usuario}</b><span>${p.Palpite}</span></div>`).join('')
+        : '<div class="expand-row" style="color:var(--muted);">Ninguém enviou palpite pra esse jogo.</div>';
+      footerHtml = `<div class="prazo" style="color:var(--vermelho); flex-basis:100%;">Prazo de envio encerrado — você não enviou</div>
+        <div style="flex-basis:100%; margin-top:6px;">${listaPalpites}</div>`;
     } else {
       const dataTxt = formatarDataJogoEPrazo(jogo.Data_Hora_Jogo);
       let contagemHtml = '';
@@ -1051,14 +1067,16 @@ function renderizarJogos() {
         <button class="btn-enviar" onclick="enviarPalpite('${jogo.ID_Jogo}', this)">Enviar</button>`;
     }
 
+    card.className = 'jogo-card' + (meuPalpite || prazoJaFechou ? ' enviado' : '');
+
     card.innerHTML = `
       <div class="fase">Fase de liga${jogo.Jornada ? ' · ' + jogo.Jornada : ''}${encerrado ? ' · Encerrado' : ''}</div>
       <div class="jogo-row">
         <div class="time-lbl esquerda">${imgCasa}<span>${jogo.Time_Casa}</span></div>
         <div class="placar-col">
-          <input class="placar-input" type="number" min="0" id="placar-casa-${jogo.ID_Jogo}" ${meuPalpite ? 'disabled' : ''}>
+          <input class="placar-input" type="number" min="0" id="placar-casa-${jogo.ID_Jogo}" ${meuPalpite || prazoJaFechou ? 'disabled' : ''}>
           <span class="placar-sep">x</span>
-          <input class="placar-input" type="number" min="0" id="placar-fora-${jogo.ID_Jogo}" ${meuPalpite ? 'disabled' : ''}>
+          <input class="placar-input" type="number" min="0" id="placar-fora-${jogo.ID_Jogo}" ${meuPalpite || prazoJaFechou ? 'disabled' : ''}>
         </div>
         <div class="time-lbl direita">${imgFora}<span>${jogo.Time_Fora}</span></div>
       </div>
@@ -1311,10 +1329,13 @@ function formatarDataCurta(dataHoraJogo) {
     d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
+let PLACARES_CACHE = [];
+
 async function carregarPlacares() {
   const resp = await apiGet('placares');
   const container = document.getElementById('placares-container');
   if (!resp.ok) { container.innerHTML = '<p class="section-note">Não consegui carregar os placares.</p>'; return; }
+  PLACARES_CACHE = resp.dados;
 
   const jogos = resp.dados.slice().sort((a, b) => {
     const da = a.Data_Hora_Jogo ? new Date(a.Data_Hora_Jogo).getTime() : Infinity;
@@ -1360,6 +1381,44 @@ async function carregarPlacares() {
 }
 
 // ---------- Classificação (palpites do usuário) ----------
+
+async function carregarComparativoClassificacao() {
+  const container = document.getElementById('comparativo-container');
+  container.innerHTML = '<p class="section-note">Carregando...</p>';
+  const resp = await apiGet('extras_todos');
+  if (!resp.ok || !resp.dados.length) {
+    container.innerHTML = '<p class="section-note">Ninguém enviou a classificação ainda.</p>';
+    return;
+  }
+
+  const participantes = resp.dados; // cada um: ID_Usuario, Top8_1..8, Top24_9..24
+  const timesOrdenados = TIMES_CACHE.slice().sort((a, b) => a.Nome_Time.localeCompare(b.Nome_Time));
+
+  let html = '<table style="border-collapse:collapse; width:100%; font-size:11px;">';
+  html += '<tr><th style="text-align:left; padding:6px 8px; position:sticky; left:0; background:var(--bg); z-index:1;">Time</th>';
+  participantes.forEach(p => {
+    html += `<th style="padding:6px 6px; text-align:center; color:var(--text); font-weight:600; min-width:52px;">${p.ID_Usuario}</th>`;
+  });
+  html += '</tr>';
+
+  timesOrdenados.forEach(t => {
+    html += `<tr style="border-top:1px solid var(--border);"><td style="padding:6px 8px; white-space:nowrap; position:sticky; left:0; background:var(--bg);">${t.Nome_Time}</td>`;
+    participantes.forEach(p => {
+      const top8 = [];
+      const top24 = [];
+      for (let i = 1; i <= 8; i++) if (p['Top8_' + i]) top8.push(p['Top8_' + i]);
+      for (let i = 9; i <= 24; i++) if (p['Top24_' + i]) top24.push(p['Top24_' + i]);
+      let cor = 'transparent';
+      let simbolo = '';
+      if (top8.includes(t.Nome_Time)) { cor = 'var(--verde-bg)'; simbolo = '✓'; }
+      else if (top24.includes(t.Nome_Time)) { cor = 'var(--amarelo-bg)'; simbolo = '✓'; }
+      html += `<td style="text-align:center; background:${cor}; padding:6px;">${simbolo}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</table>';
+  container.innerHTML = html;
+}
 
 function montarTimeList() {
   const wrap = document.getElementById('team-list');
