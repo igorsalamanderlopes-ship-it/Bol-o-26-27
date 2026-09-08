@@ -1354,7 +1354,7 @@ async function carregarPlacares() {
     row.onclick = () => toggleExpand(expandId);
 
     let expandHtml;
-    if (encerrado) {
+    if (jogo.revelado) {
       expandHtml = jogo.palpites.length
         ? jogo.palpites.map(p => `<div class="expand-row"><b>${p.ID_Usuario}</b><span>${p.Palpite}</span></div>`).join('')
         : '<div class="expand-row" style="color:var(--muted);">Ninguém enviou palpite pra esse jogo.</div>';
